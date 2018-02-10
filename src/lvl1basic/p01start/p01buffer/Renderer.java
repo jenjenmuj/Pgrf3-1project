@@ -52,6 +52,9 @@ public class Renderer implements GLEventListener, MouseListener,
 
 		createBuffers(gl);
 		createShaders(gl);
+		
+		// set render mode GL_FILL is default, other possibility GL_LINE or GL_POINT
+		gl.glPolygonMode(GL2GL3.GL_FRONT_AND_BACK, GL2GL3.GL_FILL); 
 	}
 	
 	void createBuffers(GL2GL3 gl) {
@@ -162,6 +165,7 @@ public class Renderer implements GLEventListener, MouseListener,
 		// to use the default shader of the "fixed pipeline", call
 		// gl.glUseProgram(0);
 
+		
 		// bind the vertex and index buffer to shader, could have been done only
 		// once (in init) in this sample (only one geometry used)
 		bindBuffers(gl);

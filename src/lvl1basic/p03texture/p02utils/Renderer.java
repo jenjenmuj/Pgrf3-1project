@@ -24,7 +24,7 @@ import transforms.Vec3D;
 
 /**
  * GLSL sample:<br/>
- * Load and apply cube texture using OGLTexture from oglutils package<br/>
+ * Load and apply texture using OGLTexture from oglutils package<br/>
  * Requires JOGL 2.3.0 or newer
  * 
  * @author PGRF FIM UHK
@@ -66,9 +66,9 @@ public class Renderer implements GLEventListener, MouseListener,
 		// shaders directory must be set as a source directory of the project
 		// e.g. in Eclipse via main menu Project/Properties/Java Build Path/Source
 		if (OGLUtils.getVersionGLSL(gl)<330)
-			shaderProgram = ShaderUtils.loadProgram(gl, "/lvl1basic/p03texture/p01intro/textureOld");
+			shaderProgram = ShaderUtils.loadProgram(gl, "/lvl1basic/p03texture/p02utils/textureOld");
 		else
-			shaderProgram = ShaderUtils.loadProgram(gl, "/lvl1basic/p03texture/p01intro/texture");
+			shaderProgram = ShaderUtils.loadProgram(gl, "/lvl1basic/p03texture/p02utils/texture");
 		
 		createBuffers(gl);
 
