@@ -50,7 +50,7 @@ public class Renderer implements GLEventListener, MouseListener,
 		GL2GL3 gl = glDrawable.getGL().getGL2GL3();
 		OGLUtils.shaderCheck(gl);
 						
-		if (OGLUtils.getVersionGLSL(gl) < 300){
+		if (OGLUtils.getVersionGLSL(gl) < 400){
 			System.err.println("Transform feedback is not supported"); 
 			System.exit(0);
 		}
@@ -60,7 +60,10 @@ public class Renderer implements GLEventListener, MouseListener,
 		
 		textRenderer = new OGLTextRenderer(gl, glDrawable.getSurfaceWidth(), glDrawable.getSurfaceHeight());
 		
-		shaderProgramPre = ShaderUtils.loadProgram(gl, "/lvl2advanced/p07feedback/p01vs/feedbackVS");
+		if (OGLUtils.getVersionGLSL(gl) < 450)
+			shaderProgramPre = ShaderUtils.loadProgram(gl, "/lvl2advanced/p07feedback/p01vs/feedbackVS");
+		else
+			shaderProgramPre = ShaderUtils.loadProgram(gl, "/lvl2advanced/p07feedback/p01vs/feedbackVSLayout");
 		shaderProgram = ShaderUtils.loadProgram(gl, "/lvl2advanced/p07feedback/p01vs/feedbackDraw");
 		
 		String[] name = {"outData"};

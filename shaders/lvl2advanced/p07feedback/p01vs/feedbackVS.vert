@@ -1,11 +1,11 @@
-#version 450
+#version 400
 in vec2 inPosition;
 in vec3 inColor;
-layout(xfb_buffer = 0) out outValue {
-	layout(xfb_offset = 0) vec2 pos;
-	layout(xfb_offset = 8) float r;
-	layout(xfb_offset = 12) float g;
-	layout(xfb_offset = 16) float b;
+out outValue {
+	vec2 pos;
+	float r;
+	float g;
+	float b;
 } outData;
 
 void main() {

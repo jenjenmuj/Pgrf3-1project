@@ -1,7 +1,7 @@
 #version 430 core
 
 //layout (triangles, fractional_odd_spacing, ccw) in; 
-//layout (triangles, equal_spacing, ccw) in; 
+//layout (triangles, fractional_even_spacing, ccw) in; 
 layout (triangles, equal_spacing, ccw) in; 
 
 //layout (quads, equal_spacing, cw) in;

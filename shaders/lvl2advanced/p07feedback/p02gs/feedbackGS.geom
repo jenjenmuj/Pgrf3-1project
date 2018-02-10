@@ -1,14 +1,14 @@
-#version 450
+#version 400
 //layout(points, location = 0) in vec2 position[];
 layout(points) in;
-layout(location = 1) in vec3 color[];
+in vec3 color[];
 
 layout(points, max_vertices = 4) out;
 
 
-layout(xfb_buffer = 0) out outValue {
-	layout(xfb_offset = 0) vec2 pos;
-	layout(xfb_offset = 8) vec3 col;
+out outValue {
+	vec2 pos;
+	vec3 col;
 } outData;
 
 
