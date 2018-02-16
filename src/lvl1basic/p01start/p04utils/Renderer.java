@@ -1,19 +1,13 @@
 package lvl1basic.p01start.p04utils;
 
+import com.jogamp.opengl.GL2;
 import com.jogamp.opengl.GL2GL3;
 import com.jogamp.opengl.GLAutoDrawable;
 import com.jogamp.opengl.GLEventListener;
+import oglutils.*;
+import transforms.*;
 
-import oglutils.OGLBuffers;
-import oglutils.OGLTextRenderer;
-import oglutils.OGLUtils;
-import oglutils.ShaderUtils;
-
-import java.awt.event.MouseListener;
-import java.awt.event.MouseMotionListener;
-import java.awt.event.MouseEvent;
-import java.awt.event.KeyListener;
-import java.awt.event.KeyEvent;
+import java.awt.event.*;
 
 /**
  * GLSL sample:<br/>
@@ -23,156 +17,300 @@ import java.awt.event.KeyEvent;
  * Manage (create, bind, draw) vertex and index buffers using OGLBuffers class
  * in oglutils package<br/>
  * Requires JOGL 2.3.0 or newer
- * 
+ *
  * @author PGRF FIM UHK
  * @version 2.0
  * @since 2015-09-05
  */
-public class Renderer implements GLEventListener, MouseListener,
-		MouseMotionListener, KeyListener {
 
-	int width, height;
+public class Renderer implements GLEventListener, MouseListener, MouseMotionListener, KeyListener {
 
-	OGLBuffers buffers;
-	OGLTextRenderer textRenderer;
+    private int width, height;
 
-	int shaderProgram, locTime;
+    private OGLBuffers buffers;
+    private OGLTextRenderer textRenderer;
+    private OGLRenderTarget renderTarget;
+    private OGLTexture2D.Viewer textureViewer;
+    private OGLTexture2D texture;
 
-	float time = 0;
+    private int shaderProgramViewer, locTime, lightLocTime, locView, locProjection, locMode, locLightVP, locEyePosition, locLightPosition, locLightPositionPL;
+    private int shaderProgramLight, locLightView, locLightProj, locModeLight;
+    private Mat4 projViewer, projLight;
+    private Mat3Rot2D rotateMat = new Mat3Rot2D(90);
+    private float time = 0;
+    private Camera camera, lightCamera;
+    private int mx, my;
+    private double speed = 0.5;
 
-	@Override
-	public void init(GLAutoDrawable glDrawable) {
-		// check whether shaders are supported
-		GL2GL3 gl = glDrawable.getGL().getGL2GL3();
-		OGLUtils.shaderCheck(gl);
-		
-		OGLUtils.printOGLparameters(gl);
-		
-		textRenderer = new OGLTextRenderer(gl, glDrawable.getSurfaceWidth(), glDrawable.getSurfaceHeight());
-		
-		// shader files are in /shaders/ directory
-		// shaders directory must be set as a source directory of the project
-		// e.g. in Eclipse via main menu Project/Properties/Java Build Path/Source
-		
-		
-		shaderProgram = ShaderUtils.loadProgram(gl, "/lvl1basic/p01start/p04utils/start.vert",
-				"/lvl1basic/p01start/p04utils/start.frag",
-				null,null,null,null); 
-		
-		//shorter version of loading shader program
-		//shaderProgram = ShaderUtils.loadProgram(gl, "/lvl1basic/p01start/p04utils/start"); 
-		
-		//for older GLSL version 
-		//shaderProgram = ShaderUtils.loadProgram(gl, "/lvl1basic/p01start/p04utils/startForOlderGLSL");
-		
-		createBuffers(gl);
+    @Override
+    public void init(GLAutoDrawable glDrawable) {
+        // check whether shaders are supported
+        GL2GL3 gl = glDrawable.getGL().getGL2GL3();
+        OGLUtils.shaderCheck(gl);
 
-		locTime = gl.glGetUniformLocation(shaderProgram, "time");
-	}
+        OGLUtils.printOGLparameters(gl);
 
-	void createBuffers(GL2GL3 gl) {
-		float[] vertexBufferData = {
-			-1, -1, 	0.7f, 0, 0, 
-			 1,  0,		0, 0.7f, 0,
-			 0,  1,		0, 0, 0.7f 
-		};
-		int[] indexBufferData = { 0, 1, 2 };
+        textRenderer = new OGLTextRenderer(gl, glDrawable.getSurfaceWidth(), glDrawable.getSurfaceHeight());
 
-		// vertex binding description, concise version
-		OGLBuffers.Attrib[] attributes = {
-				new OGLBuffers.Attrib("inPosition", 2), // 2 floats
-				new OGLBuffers.Attrib("inColor", 3) // 3 floats
-		};
-		buffers = new OGLBuffers(gl, vertexBufferData, attributes,
-				indexBufferData);
-		// the concise version requires attributes to be in this order within
-		// vertex and to be exactly all floats within vertex
+        //gl.glPolygonMode(GL2GL3.GL_FRONT_AND_BACK, GL2GL3.GL_FILL);// vyplnění přivrácených i odvrácených stran
+        gl.glPolygonMode(GL2GL3.GL_FRONT, GL2GL3.GL_POINT);
+        gl.glPolygonMode(GL2GL3.GL_BACK, GL2GL3.GL_POINT);
+        gl.glEnable(GL2.GL_LINE_SMOOTH);
+        gl.glEnable(GL2GL3.GL_DEPTH_TEST); // zapnout z-test
 
-/*		full version for the case that some floats of the vertex are to be ignored 
- * 		(in this case it is equivalent to the concise version): 
- 		OGLBuffers.Attrib[] attributes = {
-				new OGLBuffers.Attrib("inPosition", 2, 0), // 2 floats, at 0 floats from vertex start
-				new OGLBuffers.Attrib("inColor", 3, 2) }; // 3 floats, at 2 floats from vertex start
-		buffers = new OGLBuffers(gl, vertexBufferData, 5, // 5 floats altogether in a vertex
-				attributes, indexBufferData); 
-*/
-	}
+        // nacteni shader programu
+        shaderProgramLight = ShaderUtils.loadProgram(gl, "/lvl1basic/p01start/p04utils/light");
+        shaderProgramViewer = ShaderUtils.loadProgram(gl, "/lvl1basic/p01start/p04utils/start");
 
-	
-	@Override
-	public void display(GLAutoDrawable glDrawable) {
-		GL2GL3 gl = glDrawable.getGL().getGL2GL3();
-		
-		gl.glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-		gl.glClear(GL2GL3.GL_COLOR_BUFFER_BIT | GL2GL3.GL_DEPTH_BUFFER_BIT);
-		
-		// set the current shader to be used, could have been done only once (in
-		// init) in this sample (only one shader used)
-		gl.glUseProgram(shaderProgram); 
-		time += 0.1;
-		gl.glUniform1f(locTime, time); // correct shader must be set before this
-		
-		// bind and draw
-		buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgram);
-		
-		String text = new String(this.getClass().getName());
-		textRenderer.drawStr2D(3, height - 20, text);
-		textRenderer.drawStr2D(width - 90, 3, " (c) PGRF UHK");
+        createBuffers(gl);
+        buffers = GridFactory.generateGrid(gl, 100, 100);
 
-	}
+        lightCamera = new Camera()
+                .withPosition(new Vec3D(5, 5, 5))
+                .addAzimuth(5 / 4. * Math.PI)//-3/4.
+                .addZenith(-1 / 5. * Math.PI);
 
-	@Override
-	public void reshape(GLAutoDrawable drawable, int x, int y, int width,
-			int height) {
-		this.width = width;
-		this.height = height;
-		textRenderer.updateSize(width, height);
-	}
+        camera = new Camera()
+                .withPosition(new Vec3D(0, 0, 0))
+                .addAzimuth(5 / 4. * Math.PI)//-3/4.
+                .addZenith(-1 / 5. * Math.PI)
+                .withFirstPerson(false)
+                .withRadius(5);
 
-	@Override
-	public void mouseClicked(MouseEvent e) {
-	}
 
-	@Override
-	public void mouseEntered(MouseEvent e) {
-	}
+        // prirazeni textur
+        texture = new OGLTexture2D(gl, "/textures/bricks.jpg");
+        textureViewer = new OGLTexture2D.Viewer(gl);
 
-	@Override
-	public void mouseExited(MouseEvent e) {
-	}
+        // Uniform promenne pro start.vert
+        locTime = gl.glGetUniformLocation(shaderProgramViewer, "time");
+        locMode = gl.glGetUniformLocation(shaderProgramViewer, "mode");
+        locView = gl.glGetUniformLocation(shaderProgramViewer, "view");
+        locProjection = gl.glGetUniformLocation(shaderProgramViewer, "projection");
+        locLightVP = gl.glGetUniformLocation(shaderProgramViewer, "lightVP");
+        locEyePosition = gl.glGetUniformLocation(shaderProgramViewer, "eyePosition");
+        locLightPosition = gl.glGetUniformLocation(shaderProgramViewer, "lightPosition");
 
-	@Override
-	public void mousePressed(MouseEvent e) {
-	}
+        //uniform promenne pro light.vert
+        lightLocTime = gl.glGetUniformLocation(shaderProgramLight, "time");
+        locLightProj = gl.glGetUniformLocation(shaderProgramLight, "projLight");
+        locLightView = gl.glGetUniformLocation(shaderProgramLight, "viewLight");
+        locModeLight = gl.glGetUniformLocation(shaderProgramLight, "mode");
+        locLightPositionPL = gl.glGetUniformLocation(shaderProgramViewer, "lightPosition");
 
-	@Override
-	public void mouseReleased(MouseEvent e) {
-	}
+        renderTarget = new OGLRenderTarget(gl, 1024, 1024);
+    }
 
-	@Override
-	public void mouseDragged(MouseEvent e) {
-	}
+    void createBuffers(GL2GL3 gl) {
+        float[] vertexBufferData = {
+                -1, -1, 0.7f, 0, 0,
+                1, 0, 0, 0.7f, 0,
+                0, 1, 0, 0, 0.7f
+        };
+        int[] indexBufferData = {0, 1, 2};
 
-	@Override
-	public void mouseMoved(MouseEvent e) {
-	}
+        // vertex binding description, concise version
+        OGLBuffers.Attrib[] attributes = {
+                new OGLBuffers.Attrib("inPosition", 2), // 2 floats
+                new OGLBuffers.Attrib("inColor", 3) // 3 floats
+        };
+        buffers = new OGLBuffers(gl, vertexBufferData, attributes, indexBufferData);
+    }
 
-	@Override
-	public void keyPressed(KeyEvent e) {
-	}
+    @Override
+    public void display(GLAutoDrawable glDrawable) {
+        GL2GL3 gl = glDrawable.getGL().getGL2GL3();
 
-	@Override
-	public void keyReleased(KeyEvent e) {
-	}
+        renderFromLight(gl);
+        renderFromViewer(gl);
 
-	@Override
-	public void keyTyped(KeyEvent e) {
-	}
+        textureViewer.view(texture, -1, -1, 0.5);
+        textureViewer.view(renderTarget.getColorTexture(), -1, -0.5, 0.5);
+        textureViewer.view(renderTarget.getDepthTexture(), -1, 0, 0.5);
 
-	@Override
-	public void dispose(GLAutoDrawable glDrawable) {
-		GL2GL3 gl = glDrawable.getGL().getGL2GL3();
-		gl.glDeleteProgram(shaderProgram);
-	}
+        String text = this.getClass().getName();
+        textRenderer.drawStr2D(3, height - 20, text);
+        textRenderer.drawStr2D(width - 90, 3, " (c) PGRF UHK");
+    }
+
+    private void renderFromLight(GL2GL3 gl) {
+        gl.glUseProgram(shaderProgramLight);
+
+        renderTarget.bind();
+
+        gl.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        gl.glClear(GL2GL3.GL_COLOR_BUFFER_BIT | GL2GL3.GL_DEPTH_BUFFER_BIT);
+
+        gl.glUniform1f(lightLocTime, time);
+
+
+        gl.glUniformMatrix4fv(locLightView, 1, false, lightCamera.getViewMatrix().floatArray(), 0);
+        gl.glUniformMatrix4fv(locLightProj, 1, false, projLight.floatArray(), 0);
+        gl.glUniform3fv(locLightPositionPL, 1, ToFloatArray.convert(lightCamera.getPosition()), 0);
+
+        // PARAMETRIC SURFACE
+        // Render wall
+        gl.glUniform1i(locModeLight, 0);
+        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramLight);
+        // Render spining snake
+        gl.glUniform1i(locModeLight, 1);
+        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramLight);
+        // Render Mobius Band
+        gl.glUniform1i(locModeLight, 6);
+        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramLight);
+
+        // PS WITH SPHERICAL COORDS
+        // Render elephants head
+        gl.glUniform1i(locModeLight, 2);
+        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramLight);
+        // Render mouse
+        gl.glUniform1i(locModeLight, 3);
+        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramLight);
+
+        // PS WITH CYLINDRICAL COORDS
+        // Render Helicoid
+        gl.glUniform1i(locModeLight, 4);
+        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramLight);
+        // Render Amphore
+        gl.glUniform1i(locModeLight, 5);
+        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramLight);
+
+        // Render SUN
+        gl.glUniform1i(locMode, 7);
+        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramLight);
+    }
+
+    private void renderFromViewer(GL2GL3 gl) {
+        gl.glUseProgram(shaderProgramViewer);
+
+        gl.glBindFramebuffer(GL2GL3.GL_FRAMEBUFFER, 0);
+        gl.glViewport(0, 0, width, height);
+
+        gl.glClearColor(0.0f, 0.2f, 0.5f, 1.0f);
+        gl.glClear(GL2GL3.GL_COLOR_BUFFER_BIT | GL2GL3.GL_DEPTH_BUFFER_BIT);
+
+        time += 0.01;
+        gl.glUniform1f(locTime, time);
+
+
+        gl.glUniformMatrix4fv(locView, 1, false, camera.getViewMatrix().floatArray(), 0);
+        gl.glUniformMatrix4fv(locProjection, 1, false, projViewer.floatArray(), 0);
+        gl.glUniformMatrix4fv(locLightVP, 1, false, lightCamera.getViewMatrix().mul(projLight).floatArray(), 0);
+        gl.glUniform3fv(locEyePosition, 1, ToFloatArray.convert(camera.getPosition()), 0);
+        gl.glUniform3fv(locLightPosition, 1, ToFloatArray.convert(lightCamera.getPosition()), 0);
+
+        texture.bind(shaderProgramViewer, "textureID", 0);
+        //renderTarget.getColorTexture().bind(shaderProgramViewer, "colorTexture", 0);
+        renderTarget.getDepthTexture().bind(shaderProgramViewer, "depthTexture", 1);
+
+        // PARAMETRIC SURFACE
+        // render wall
+        gl.glUniform1i(locMode, 0);
+        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramViewer);
+        // render Sppining Snake
+        gl.glUniform1i(locMode, 1);
+        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramViewer);
+        // Render Mobius Band
+        gl.glUniform1i(locMode, 6);
+        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramViewer);
+
+        // PS WITH SPHERICAL COORDS
+        // Render Elephants head
+        gl.glUniform1i(locMode, 2);
+        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramViewer);
+        // render mouse
+        gl.glUniform1i(locMode, 3);
+        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramViewer);
+
+        // PS WITH CYLINDRICAL COORDS
+        // Render Helicoid
+        gl.glUniform1i(locMode, 4);
+        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramViewer);
+
+        // Render Amphore
+        gl.glUniform1i(locMode, 5);
+        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramViewer);
+
+        // Render SUN
+        gl.glUniform1i(locMode, 7);
+        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramViewer);
+    }
+
+    @Override
+    public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) {
+        this.width = width;
+        this.height = height;
+        textRenderer.updateSize(width, height);
+
+        double ratio = height / (double) width;
+        projLight = new Mat4OrthoRH(5 / ratio, 5, 0.1, 20);
+//        projViewer = new Mat4OrthoRH(5 / ratio, 5, 0.1, 20);
+        projViewer = new Mat4PerspRH(Math.PI / 3, ratio, 1, 20.0);
+    }
+
+    @Override
+    public void dispose(GLAutoDrawable glDrawable) {
+        GL2GL3 gl = glDrawable.getGL().getGL2GL3();
+        gl.glDeleteProgram(shaderProgramViewer);
+        gl.glDeleteProgram(shaderProgramLight);
+    }
+
+    @Override
+    public void mouseClicked(MouseEvent e) {
+    }
+
+    @Override
+    public void mouseEntered(MouseEvent e) {
+    }
+
+    @Override
+    public void mouseExited(MouseEvent e) {
+    }
+
+    @Override
+    public void mousePressed(MouseEvent e) {
+        mx = e.getX();
+        my = e.getY();
+    }
+
+    @Override
+    public void mouseReleased(MouseEvent e) {
+    }
+
+    @Override
+    public void mouseDragged(MouseEvent e) {
+        camera = camera.addAzimuth(Math.PI * (mx - e.getX()) / width);
+        camera = camera.addZenith(Math.PI * (e.getY() - my) / width);
+        mx = e.getX();
+        my = e.getY();
+    }
+
+    @Override
+    public void mouseMoved(MouseEvent e) {
+    }
+
+    @Override
+    public void keyPressed(KeyEvent e) {
+        // W
+        if (e.getKeyCode() == 87) camera = camera.forward(speed);
+        // S
+        if (e.getKeyCode() == 83) camera = camera.backward(speed);
+        // A
+        if (e.getKeyCode() == 65) camera = camera.left(speed);
+        // D
+        if (e.getKeyCode() == 68) camera = camera.right(speed);
+        // E Up
+        if (e.getKeyCode() == 69) camera = camera.up(speed);
+        // Q Down
+        if (e.getKeyCode() == 81) camera = camera.down(speed);
+    }
+
+    @Override
+    public void keyReleased(KeyEvent e) {
+    }
+
+    @Override
+    public void keyTyped(KeyEvent e) {
+    }
 
 }

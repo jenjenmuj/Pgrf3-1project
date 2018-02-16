@@ -1,20 +1,10 @@
 #version 150
-in vec2 inPosition;//vstup z vb
-
-uniform mat4 projection;
-uniform mat4 view;
-uniform vec3 lightPosition;//pozice svetla
+in vec2 inPosition;// input from the vertex buffer
 uniform float time;
+uniform mat4 viewLight;
+uniform mat4 projLight;
 uniform int mode;
-uniform mat4 lightVP;
-
-// vystupy
-out vec4 depthTexCoord;
-out vec2 texCoord;
-out vec3 normal;
-out vec3 light;
-out vec3 viewDirection;
-out vec3 NdotL;
+uniform vec3 lightPosition;
 
 const float PI = 3.1415;
 
@@ -184,40 +174,19 @@ vec3 selection(vec2 pos) {
         case 4: return getBrokenVase(pos);
         case 5: return getAmphore(pos);
         case 6: return getMobiusBand(pos);
-        case 7: return getSun(pos);
     }
 }
 
-//normala k parametrickzm telesum
-vec3 getNormal(vec2 xy) {
-    float delta = 0.001;
-    vec3 u = selection(xy + vec2(delta, 0)) - selection(xy - vec2(delta, 0));
-    vec3 v = selection(xy + vec2(0, delta)) - selection(xy - vec2(0, delta));
-    return cross(u, v);
-}
-
-
 void main() {
-
-    vec2 pos = inPosition * 2 - 1;// prepocitani z <0, 1> do <-1, 1>
+    vec2 pos = inPosition * 2 - 1;// máme od 0 do 1 a chceme od -1 do 1 (funkce pro ohyb gridu s tím počítají
     vec3 finalPos;
-
     finalPos = selection(pos);
-    normal = getNormal(pos);
-    gl_Position = projection * view * vec4(finalPos, 1.0);
 
-    light = lightPosition - finalPos;// light direction vector
-    NdotL = vec3(dot(normal, light));
+    vec3 pom = getSun(finalPos.xy);
 
-    // získání pozice kamery z view matice
-    // (kamera je pohled třetí osoby a tudíž její pozice je v počátku - proto nutné použít view matici)
-    mat4 invView = inverse(view);
-    vec3 eyePosition = vec3(invView[3][0], invView[3][1], invView[3][2]);
+    finalPos.x += pom.x;
+    finalPos.y += pom.y;
+    finalPos.z += pom.z;
 
-    viewDirection = eyePosition - finalPos;
-
-    texCoord = inPosition;
-
-    depthTexCoord = lightVP * vec4(finalPos, 1.0);
-    depthTexCoord.xyz = (depthTexCoord.xyz + 1) / 2;// obrazovka má rozsahy <-1;1>
-}
+    gl_Position = projLight * viewLight * vec4(finalPos, 1.0);
+} 

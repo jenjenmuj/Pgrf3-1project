@@ -1,17 +1,15 @@
 package lvl1basic.p01start.p04utils;
 
 
-
 import com.jogamp.opengl.GLCapabilities;
 import com.jogamp.opengl.GLProfile;
 import com.jogamp.opengl.awt.GLCanvas;
 import com.jogamp.opengl.util.FPSAnimator;
 
+import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-
-import javax.swing.SwingUtilities;
 
 public class JOGLApp {
 	private static final int FPS = 60; // animator's target frames per second
