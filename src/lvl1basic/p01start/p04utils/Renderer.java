@@ -35,6 +35,7 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
 
     private int shaderProgramViewer, locTime, lightLocTime, locView, locProjection, locMode, locLightVP, locEyePosition, locLightPosition, locLightPositionPL;
     private int shaderProgramLight, locLightView, locLightProj, locModeLight;
+    private int shaderProgramTheSun;
     private Mat4 projViewer, projLight;
     private Mat3Rot2D rotateMat = new Mat3Rot2D(90);
     private float time = 0;
@@ -61,6 +62,7 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         // nacteni shader programu
         shaderProgramLight = ShaderUtils.loadProgram(gl, "/lvl1basic/p01start/p04utils/light");
         shaderProgramViewer = ShaderUtils.loadProgram(gl, "/lvl1basic/p01start/p04utils/start");
+        shaderProgramTheSun = ShaderUtils.loadProgram(gl, "/lvl1basic/p01start/p04utils/theSun");
 
         createBuffers(gl);
         buffers = GridFactory.generateGrid(gl, 100, 100);
@@ -235,6 +237,8 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         gl.glUniform1i(locMode, 7);
         buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramViewer);
     }
+
+
 
     @Override
     public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) {

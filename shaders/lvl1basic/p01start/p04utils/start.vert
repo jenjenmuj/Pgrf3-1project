@@ -18,6 +18,8 @@ out vec3 NdotL;
 
 const float PI = 3.1415;
 
+// vztvorit novy shader pro slunicko, kde se bude zobrazovat teleso zvlast, budem posilat souradnice kamerz
+
 mat4 rotationMatrix(vec3 axis, float angle) {
     axis = normalize(axis);
     float s = sin(angle);
@@ -207,7 +209,7 @@ void main() {
     gl_Position = projection * view * vec4(finalPos, 1.0);
 
     light = lightPosition - finalPos;// light direction vector
-    NdotL = vec3(dot(normal, light));
+    NdotL = vec3(dot(normal, light));// spocitat ve frag shaderu / max (ndotL, 0) ///poslat si L - vektor ke svetlu  a N normala
 
     // získání pozice kamery z view matice
     // (kamera je pohled třetí osoby a tudíž její pozice je v počátku - proto nutné použít view matici)
