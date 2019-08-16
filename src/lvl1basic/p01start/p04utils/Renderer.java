@@ -23,6 +23,8 @@ import java.awt.event.*;
  * @since 2015-09-05
  */
 
+
+// rojekt 2 morfing texturz a tvaru teles
 public class Renderer implements GLEventListener, MouseListener, MouseMotionListener, KeyListener {
 
     private int width, height;
@@ -94,6 +96,7 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         locLightPosition = gl.glGetUniformLocation(shaderProgramViewer, "lightPosition");
 
         //uniform promenne pro light.vert
+        // jedna se o likatory (id) do pameti
         lightLocTime = gl.glGetUniformLocation(shaderProgramLight, "time");
         locLightProj = gl.glGetUniformLocation(shaderProgramLight, "projLight");
         locLightView = gl.glGetUniformLocation(shaderProgramLight, "viewLight");
@@ -182,12 +185,21 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramLight);
     }
 
+    private void renderFromTheSun(GL2GL3 gl) {
+        //TODO render from the sun, do not clear the gl, send matrix of the light position, do for the
+        // for the rotation use ModelView matrix
+        // bind the Framebuffer not the renderTarget
+        // use different textures on diferent object
+        // prednaska 05 stiny - podle vyorecku, kde se orezava W umistit prepocitavani souradnic z vertex bufferu do frame bufferu
+        //
+    }
     private void renderFromViewer(GL2GL3 gl) {
         gl.glUseProgram(shaderProgramViewer);
 
         gl.glBindFramebuffer(GL2GL3.GL_FRAMEBUFFER, 0);
         gl.glViewport(0, 0, width, height);
 
+        // vymaze vse ve scene
         gl.glClearColor(0.0f, 0.2f, 0.5f, 1.0f);
         gl.glClear(GL2GL3.GL_COLOR_BUFFER_BIT | GL2GL3.GL_DEPTH_BUFFER_BIT);
 
@@ -195,12 +207,14 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         gl.glUniform1f(locTime, time);
 
 
+        // do promenych vb ukladam float nebo matice
         gl.glUniformMatrix4fv(locView, 1, false, camera.getViewMatrix().floatArray(), 0);
         gl.glUniformMatrix4fv(locProjection, 1, false, projViewer.floatArray(), 0);
         gl.glUniformMatrix4fv(locLightVP, 1, false, lightCamera.getViewMatrix().mul(projLight).floatArray(), 0);
         gl.glUniform3fv(locEyePosition, 1, ToFloatArray.convert(camera.getPosition()), 0);
         gl.glUniform3fv(locLightPosition, 1, ToFloatArray.convert(lightCamera.getPosition()), 0);
 
+        // vola se bind textury pomoci dept TEexture nebo color
         texture.bind(shaderProgramViewer, "textureID", 0);
         //renderTarget.getColorTexture().bind(shaderProgramViewer, "colorTexture", 0);
         renderTarget.getDepthTexture().bind(shaderProgramViewer, "depthTexture", 1);
