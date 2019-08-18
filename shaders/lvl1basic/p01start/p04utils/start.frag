@@ -15,6 +15,7 @@ vec4 position;
 out vec4 outColor;// (vždy jediný) výstup z fragment shaderu
 
 void main() {
+
 	vec4 ambient = vec4(1.0, 0.0, 0.0, 1.0);
 	vec4 diffuse = vec4(normalize(NdotL) * vec3(0.0, 1.0, 0.0), 1.0);
 

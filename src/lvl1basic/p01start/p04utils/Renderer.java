@@ -23,6 +23,16 @@ import java.awt.event.*;
  * @since 2015-09-05
  */
 
+
+// rojekt 2 morfing texturz a tvaru teles
+
+//TODO render from the sun, do not clear the gl, send matrix of the light position, do for the
+// for the rotation use ModelView matrix
+// bind the Framebuffer not the renderTarget
+// use different textures on diferent object
+// prednaska 05 stiny - podle vyorecku, kde se orezava W umistit prepocitavani souradnic z vertex bufferu do frame bufferu
+//
+
 public class Renderer implements GLEventListener, MouseListener, MouseMotionListener, KeyListener {
 
     private int width, height;
@@ -35,11 +45,13 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
 
     private int shaderProgramViewer, locTime, lightLocTime, locView, locProjection, locMode, locLightVP, locEyePosition, locLightPosition, locLightPositionPL;
     private int shaderProgramLight, locLightView, locLightProj, locModeLight;
+    private int locSunProj, locSunView, locSunPositionPL, locSunLightVP, locSunEyePosition, locSunLightPosition;
     private int shaderProgramTheSun;
     private Mat4 projViewer, projLight;
-    private Mat3Rot2D rotateMat = new Mat3Rot2D(90);
+    private double alpha = 1.570; //90 degree in radians
+    //private Mat3Rot2D rotationMatrix = new Mat3Rot2D(alpha);
     private float time = 0;
-    private Camera camera, lightCamera;
+    private Camera camera, lightCamera, pomCamera;
     private int mx, my;
     private double speed = 0.5;
 
@@ -100,6 +112,13 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         locModeLight = gl.glGetUniformLocation(shaderProgramLight, "mode");
         locLightPositionPL = gl.glGetUniformLocation(shaderProgramViewer, "lightPosition");
 
+        locSunProj = gl.glGetUniformLocation(shaderProgramTheSun, "projection");
+        locSunView = gl.glGetUniformLocation(shaderProgramTheSun, "view");
+        locSunPositionPL = gl.glGetUniformLocation(shaderProgramTheSun, "lightPosition");
+        //locSunLightVP = gl.glGetUniformLocation(shaderProgramTheSun, "lightVP");
+        //locSunEyePosition = gl.glGetUniformLocation(shaderProgramTheSun, "eyePosition");
+        //locSunLightPosition = gl.glGetUniformLocation(shaderProgramTheSun, "lightPosition");
+
         renderTarget = new OGLRenderTarget(gl, 1024, 1024);
     }
 
@@ -125,6 +144,7 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
 
         renderFromLight(gl);
         renderFromViewer(gl);
+        renderFromTheSun(gl);
 
         textureViewer.view(texture, -1, -1, 0.5);
         textureViewer.view(renderTarget.getColorTexture(), -1, -0.5, 0.5);
@@ -149,6 +169,7 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         gl.glUniformMatrix4fv(locLightView, 1, false, lightCamera.getViewMatrix().floatArray(), 0);
         gl.glUniformMatrix4fv(locLightProj, 1, false, projLight.floatArray(), 0);
         gl.glUniform3fv(locLightPositionPL, 1, ToFloatArray.convert(lightCamera.getPosition()), 0);
+
 
         // PARAMETRIC SURFACE
         // Render wall
@@ -178,8 +199,8 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramLight);
 
         // Render SUN
-        gl.glUniform1i(locMode, 7);
-        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramLight);
+        //gl.glUniform1i(locMode, 7);
+        //buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramLight);
     }
 
     private void renderFromViewer(GL2GL3 gl) {
@@ -234,11 +255,59 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramViewer);
 
         // Render SUN
+        //gl.glUniform1i( 1,7);
+        //buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramViewer);
+    }
+
+    private void renderFromTheSun(GL2GL3 gl) {
+        gl.glUseProgram(shaderProgramTheSun);
+
+        gl.glBindFramebuffer(GL2GL3.GL_FRAMEBUFFER, 0);
+        gl.glViewport(0, 0, width, height);
+
+        //gl.glClearColor(0.0f, 0.2f, 0.5f, 1.0f);
+        //gl.glClear(GL2GL3.GL_COLOR_BUFFER_BIT | GL2GL3.GL_DEPTH_BUFFER_BIT);
+
+        time += 0.01;
+        //gl.glUniform1f(locTime, time);
+
+
+        //rotuju svetlo
+        Mat3RotZ rotatationMatrixZAxis = new Mat3RotZ(0.01);
+
+        //pomCamera = new Camera().withPosition(lightCamera.getPosition().mul(rotatationMatrixZAxis));
+        //lightCamera = pomCamera;
+
+        Vec3D direction = new Vec3D(
+                // TODO Calculate direction for light
+        );
+        lightCamera.move(direction);
+
+        gl.glUniform3fv(locSunPositionPL, 1, ToFloatArray.convert(lightCamera.getPosition()), 0);
+
+        gl.glUniformMatrix4fv(locSunView, 1, false, camera.getViewMatrix().floatArray(), 0);
+        gl.glUniformMatrix4fv(locSunProj, 1, false, projViewer.floatArray(), 0);
+
+        //gl.glUniformMatrix4fv(locSunLightVP, 1, false, lightCamera.getViewMatrix().mul(projLight).floatArray(), 0);
+
+        //gl.glUniform3fv(locSunEyePosition, 1, ToFloatArray.convert(camera.getPosition()), 0);
+       // gl.glUniform3fv(locSunLightPosition, 1, ToFloatArray.convert(lightCamera.getPosition()), 0);
+        gl.glUniform3fv(locSunPositionPL, 1, ToFloatArray.convert(lightCamera.getPosition()), 0);
+
+
+
+        //lightCamera.withPosition(lightCamera.getPosition().mul(rotatationMatrixZAxis));
+
+        texture.bind(shaderProgramViewer, "textureID", 0);
+        renderTarget.getColorTexture().bind(shaderProgramViewer, "colorTexture", 0);
+        //renderTarget.getDepthTexture().bind(shaderProgramViewer, "depthTexture", 1);
+
+
+
+        // Render SUN
         gl.glUniform1i(locMode, 7);
         buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramViewer);
     }
-
-
 
     @Override
     public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) {
@@ -257,6 +326,7 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         GL2GL3 gl = glDrawable.getGL().getGL2GL3();
         gl.glDeleteProgram(shaderProgramViewer);
         gl.glDeleteProgram(shaderProgramLight);
+        gl.glDeleteProgram(shaderProgramTheSun);
     }
 
     @Override
