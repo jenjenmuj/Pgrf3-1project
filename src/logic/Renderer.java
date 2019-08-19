@@ -7,6 +7,7 @@ import com.jogamp.opengl.GLEventListener;
 import oglutils.*;
 import transforms.*;
 
+import java.awt.*;
 import java.awt.event.*;
 
 /**
@@ -52,7 +53,7 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
     private Vec3D light1 =  new Vec3D(5, 5, 5);;
     private Mat4ViewRH viewLight;
     private int structure = 2, structureKeyAction = 2;
-    private String structureMessage = "";
+    private String structureMessage = "GL Fill";
     private Mat4 projViewer, projLight;
 
     private float time = 0;
@@ -60,6 +61,7 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
     private Camera camera, lightCamera, pomCamera;
     private int mx, my;
     private double speed = 0.5;
+
 
     @Override
     public void init(GLAutoDrawable glDrawable) {
@@ -159,9 +161,18 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         textureViewer.view(renderTarget.getDepthTexture(), -1, 0, 0.5);
 
         String text = this.getClass().getName();
+        String helpText1 = "Press I to change structure";
+        String helpText2 = "Press P to change Viewer perspective";
+        String helpText3 = "Press L to change Light perspective";
+        Color c = new Color(888888888);
+        textRenderer.setColor(c);
         textRenderer.drawStr2D(3, height - 20, text);
+        textRenderer.drawStr2D(3, height - 38, helpText1);
+        textRenderer.drawStr2D(3, height - 50, helpText2);
+        textRenderer.drawStr2D(3, height - 64, helpText3);
+
         textRenderer.drawStr2D(width - 90, 3, " (c) PGRF UHK");
-        textRenderer.drawStr2D(0, 3, structureMessage );
+        textRenderer.drawStr2D(width - 80, height - 20, structureMessage );
 
         double ratio = height / (double) width;
 
@@ -241,7 +252,7 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
 
         if (stopTime != true) {
             time += 0.01;
-        } else time = 0;
+        } else time = time;
 
         gl.glUniform1f(locTime, time);
         gl.glUniformMatrix4fv(locView, 1, false, camera.getViewMatrix().floatArray(), 0);
@@ -312,7 +323,7 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         //gl.glClearColor(0.0f, 0.2f, 0.5f, 1.0f);
         //gl.glClear(GL2GL3.GL_COLOR_BUFFER_BIT | GL2GL3.GL_DEPTH_BUFFER_BIT);
 
-        time += 0.01;
+
         //gl.glUniform1f(locTime, time);
 
 
@@ -451,6 +462,12 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
             if (lightPerspective == 0) lightPerspective = 1;
             else lightPerspective = 0;
         }
+        // O down
+        if (e.getKeyCode() == 79) {
+            if (stopTime == false) stopTime = true;
+            else stopTime = false;
+        }
+
     }
 
     @Override
