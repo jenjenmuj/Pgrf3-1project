@@ -6,6 +6,7 @@ uniform mat4 viewLight;
 uniform mat4 projLight;
 uniform int mode;
 uniform vec3 lightPosition;
+uniform vec3 lightPosition2;
 
 const float PI = 3.1415;
 
@@ -166,7 +167,7 @@ vec3 getAmphore(vec2 xy) {
 }
 vec3 selection(vec2 pos) {
     vec3 result;
-    switch (mode) {
+    switch (mode % 7) {
         default :
         case 0: return getWall(pos);
         case 1: return getSpiningSnake(pos);
@@ -184,10 +185,12 @@ void main() {
     finalPos = selection(pos);
 
 //    vec3 pom = getSun(finalPos.xy);
-//
-//    finalPos.x += pom.x;
-//    finalPos.y += pom.y;
-//    finalPos.z += pom.z;
+/*
+
+    finalPos.x += lightPosition2.x;
+    finalPos.y += lightPosition2.y;
+    finalPos.z += lightPosition2.z;
+*/
 
     gl_Position = projLight * viewLight * vec4(finalPos, 1.0);
 } 

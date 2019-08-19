@@ -5,6 +5,7 @@ in vec2 inPosition;// input from the vertex buffer
 uniform mat4 projection;
 uniform mat4 view;
 uniform vec3 lightPosition; //pozice svetla
+
 //uniform mat4 lightVP;
 
 const float PI = 3.1415;
