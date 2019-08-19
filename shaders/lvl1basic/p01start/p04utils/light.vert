@@ -1,5 +1,6 @@
 #version 150
 in vec2 inPosition;// input from the vertex buffer
+in vec3 inColor;
 uniform float time;
 uniform mat4 viewLight;
 uniform mat4 projLight;
