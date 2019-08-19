@@ -47,15 +47,16 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
     private int shaderProgramLight, locLightView, locLightProj, locModeLight, locLightPositionPL2;
     private int shaderProgramTheSun, locSunProj, locSunView, locSunPositionPL;
 
-
+    private int viewerPerspective = 1;
+    private int lightPerspective = 0;
     private Vec3D light1 =  new Vec3D(5, 5, 5);;
     private Mat4ViewRH viewLight;
     private int structure = 2, structureKeyAction = 2;
     private String structureMessage = "";
     private Mat4 projViewer, projLight;
-    private double alpha = 1.570; //90 degree in radians
-    //private Mat3Rot2D rotationMatrix = new Mat3Rot2D(alpha);
+
     private float time = 0;
+    private  boolean stopTime = false;
     private Camera camera, lightCamera, pomCamera;
     private int mx, my;
     private double speed = 0.5;
@@ -73,14 +74,6 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         //gl.glEnable(GL2.GL_LINE_SMOOTH);
         gl.glEnable(GL2GL3.GL_DEPTH_TEST);
 
-        //gl.glPointSize(3f);
-
-
-        //gl.glPolygonMode(GL2GL3.GL_FRONT_AND_BACK, GL2GL3.GL_FILL);// vyplnění přivrácených i odvrácených stran
-        //gl.glPolygonMode(GL2GL3.GL_FRONT, GL2GL3.GL_POINT);
-        //gl.glPolygonMode(GL2GL3.GL_BACK, GL2GL3.GL_POINT);
-        //gl.glEnable(GL2.GL_LINE_SMOOTH);
-         // zapnout z-test
 
         // nacteni shader programu
         shaderProgramLight = ShaderUtils.loadProgram(gl, "/light");
@@ -169,16 +162,27 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         textRenderer.drawStr2D(3, height - 20, text);
         textRenderer.drawStr2D(width - 90, 3, " (c) PGRF UHK");
         textRenderer.drawStr2D(0, 3, structureMessage );
+
+        double ratio = height / (double) width;
+
+        switch (viewerPerspective) {
+            case 0:
+                projViewer = new Mat4OrthoRH(5 / ratio, 5, 0.1, 20); break;
+            case 1:
+                projViewer = new Mat4PerspRH(Math.PI / 3, ratio, 1, 20.0); break;
+        }
+        switch (lightPerspective) {
+            case 0:
+                projLight = new Mat4OrthoRH(5 / ratio, 5, 0.1, 20); break;
+            case 1:
+                projLight = new Mat4PerspRH(Math.PI / 3, ratio, 1, 20.0); break;
+        }
     }
 
     private void renderFromLight(GL2GL3 gl) {
         gl.glUseProgram(shaderProgramLight);
 
         renderTarget.bind();
-
-
-
-
 
         viewLight = new Mat4ViewRH(light1,light1.mul(-1),new Vec3D(0, 0, 1));
 
@@ -235,7 +239,10 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         gl.glClearColor(0.0f, 0.2f, 0.5f, 1.0f);
         gl.glClear(GL2GL3.GL_COLOR_BUFFER_BIT | GL2GL3.GL_DEPTH_BUFFER_BIT);
 
-        time += 0.01;
+        if (stopTime != true) {
+            time += 0.01;
+        } else time = 0;
+
         gl.glUniform1f(locTime, time);
         gl.glUniformMatrix4fv(locView, 1, false, camera.getViewMatrix().floatArray(), 0);
         gl.glUniformMatrix4fv(locProjection, 1, false, projViewer.floatArray(), 0);
@@ -352,9 +359,10 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         textRenderer.updateSize(width, height);
 
         double ratio = height / (double) width;
-        projLight = new Mat4OrthoRH(5 / ratio, 5, 0.1, 20);
-//        projViewer = new Mat4OrthoRH(5 / ratio, 5, 0.1, 20);
-        projViewer = new Mat4PerspRH(Math.PI / 3, ratio, 1, 20.0);
+
+        projViewer = new Mat4OrthoRH(5 / ratio, 5, 0.1, 20);
+        projLight = new Mat4PerspRH(Math.PI / 3, ratio, 1, 20.0);
+
     }
 
     @Override
@@ -413,8 +421,8 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         if (e.getKeyCode() == 69) camera = camera.up(speed);
         // Q Down
         if (e.getKeyCode() == 81) camera = camera.down(speed);
-        // P down
-        if (e.getKeyCode() == 80) {
+        // I down
+        if (e.getKeyCode() == 73) {
             structureKeyAction++;
             switch (structureKeyAction % 3) {
                 case 0: {
@@ -432,6 +440,16 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
             }
 
             if (structureKeyAction == 3) structureKeyAction = 0;
+        }
+        // P down
+        if (e.getKeyCode() == 80) {
+            if (viewerPerspective == 0) viewerPerspective = 1;
+            else viewerPerspective = 0;
+        }
+        // L down
+        if (e.getKeyCode() == 76) {
+            if (lightPerspective == 0) lightPerspective = 1;
+            else lightPerspective = 0;
         }
     }
 

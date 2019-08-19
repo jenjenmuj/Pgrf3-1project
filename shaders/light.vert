@@ -184,13 +184,5 @@ void main() {
     vec3 finalPos;
     finalPos = selection(pos);
 
-//    vec3 pom = getSun(finalPos.xy);
-/*
-
-    finalPos.x += lightPosition2.x;
-    finalPos.y += lightPosition2.y;
-    finalPos.z += lightPosition2.z;
-*/
-
     gl_Position = projLight * viewLight * vec4(finalPos, 1.0);
 } 
