@@ -16,6 +16,7 @@ out vec3 normal; // <<N>>
 out vec3 lightDirection; // light direction vector <<L>>
 out vec3 viewDirection;
 out vec3 NdotL;
+out float dist;
 
 
 const float PI = 3.1415;
@@ -221,6 +222,8 @@ void main() {
     viewDirection = eyePosition - finalPos;
 
     texCoord = inPosition;
+
+    dist = length(lightPosition);
 
     depthTexCoord = lightVP * vec4(finalPos, 1.0); //lightVP je kam svetlo kouka * pozice
 

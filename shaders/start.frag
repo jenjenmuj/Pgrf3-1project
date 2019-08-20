@@ -5,7 +5,7 @@ in vec2 texCoord;//souradnice textury
 in vec3 normal;
 in vec3 lightDirection;
 in vec3 viewDirection;
-
+in float dist;
 
 uniform sampler2D textureID;
 uniform sampler2D depthTexture;
@@ -19,32 +19,39 @@ float kA = 0.25; // koeficient odrazu okolniho svetla
 float kS = 0.4;
 float kD = 0.774597;
 float h = 76.8;
-vec3 r;
+float constantAttenuation = 0.5, linearAttenuation = 0.05, quadraticAttenuation = 0.005;
+float spotCutOff = 2.5;
+vec3 spotDirection = lightDirection;
 
 
 void main() {
-
-
-
 	vec3 NdotL = vec3(dot(normal, lightDirection));
 	vec4 ambient = vec4(1.0, 1.0, 1.0, 1.0) * kA; //bile svetlo * koeficient odrazu okolniho svetla
 	vec4 diffuse = vec4(normalize(NdotL) * vec3(1.0, 1.0, 1.0) * kD, 1.0);
-
 
 	vec3 halfVector = normalize(normalize(lightDirection) + normalize(viewDirection)); // H = normalize( L + V );
 	float NdotH = max(0, dot(normalize(normal), halfVector)); //NdotH = max(0, dot(N,H));
 	vec4 specular = vec4(pow(NdotH, h)) * vec4(1.0, 1.0, 1.0, 1.0) * kS;
 
-	//float dist = length(lightDirection);
+	// vypocet utlumu
+	float att=1.0/(constantAttenuation + linearAttenuation * dist + quadraticAttenuation * dist * dist);
+/*
+	// vypocet reflektoru
+	float spotEffect = max(dot(normalize(spotLightDirection), normalize(-lightDirection)),0);
 
 
+	// nastavuji att na 0, aby se pocitala pouze ambientni slozka barvy
+	if (spotEffect < spotCutOff) {
+		att = 0.0;
+	}
 
-	vec4 color = ambient + diffuse + specular;
+	// osvtleni s rozmazanim
+	blend = clamp((spotEffect-spotCutOff)/(1-spotCutOff), 0.0, 1.0); //orezani na rozsah <0;1>
+	outColor = mix(ambient, color ,blend); //blendovani
 
+*/
 	vec4 texColor = texture(textureID, texCoord);
 
-
-	// nejbližší pixel z pohledu světla
 	float z1 = texture(depthTexture, depthTexCoord.xy / depthTexCoord.w).r;// nutná dehomogenizace
 	// r -> v light.frag uládáme gl_FragCoord.zzz, takže jsou všechny hodnoty stejné
 
@@ -53,12 +60,11 @@ void main() {
 
 	bool shadow = z1 < z2 - 0.0001;
 
+
 	if (shadow) {
-		//		outColor = vec4(1, 0, 0, 1);
-		outColor = texColor * ambient;
-	} else {
-		//		outColor = vec4(0, 1, 0, 1);
-		outColor = texColor * color;
+		att = 0.0;
 	}
 
+	vec4 color = ambient + (att * (diffuse + specular));
+	outColor = vec4(texColor * color);
 }
