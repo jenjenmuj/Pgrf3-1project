@@ -7,14 +7,16 @@ uniform vec3 lightPosition;//pozice svetla
 uniform float time;
 uniform int mode;
 uniform mat4 lightVP;
+uniform vec3 eyePosition;
 
 // vystupy
 out vec4 depthTexCoord;
 out vec2 texCoord;
-out vec3 normal;
-out vec3 light;
+out vec3 normal; // <<N>>
+out vec3 lightDirection; // light direction vector <<L>>
 out vec3 viewDirection;
 out vec3 NdotL;
+
 
 const float PI = 3.1415;
 
@@ -205,21 +207,23 @@ void main() {
     vec3 finalPos;
 
     finalPos = selection(pos);
-    normal = getNormal(pos);
+    normal = getNormal(pos); //<<N>>
     gl_Position = projection * view * vec4(finalPos, 1.0);
 
-    light = lightPosition - finalPos;// light direction vector
-    NdotL = vec3(dot(normal, light));// spocitat ve frag shaderu / max (ndotL, 0) ///poslat si L - vektor ke svetlu  a N normala
+    lightDirection = lightPosition - finalPos;// light direction vector <<L>>
+    //NdotL = vec3(dot(normal, light));// spocitat ve frag shaderu / max (ndotL, 0) ///poslat si L - vektor ke svetlu  a N normala
 
     // získání pozice kamery z view matice
     // (kamera je pohled třetí osoby a tudíž její pozice je v počátku - proto nutné použít view matici)
-    mat4 invView = inverse(view);
-    vec3 eyePosition = vec3(invView[3][0], invView[3][1], invView[3][2]);
+    //mat4 invView = inverse(view);
+    //vec3 eyePosition = vec3(invView[3][0], invView[3][1], invView[3][2]);
 
     viewDirection = eyePosition - finalPos;
 
     texCoord = inPosition;
 
-    depthTexCoord = lightVP * vec4(finalPos, 1.0);
-    depthTexCoord.xyz = (depthTexCoord.xyz + 1) / 2;// obrazovka má rozsahy <-1;1>
+    depthTexCoord = lightVP * vec4(finalPos, 1.0); //lightVP je kam svetlo kouka * pozice
+
+    depthTexCoord.xyz = ((depthTexCoord.xyz) + 1) / 2;// obrazovka má rozsahy <-1;1>
+
 }

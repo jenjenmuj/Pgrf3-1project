@@ -255,12 +255,12 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         } else time = time;
 
         gl.glUniform1f(locTime, time);
-        gl.glUniformMatrix4fv(locView, 1, false, camera.getViewMatrix().floatArray(), 0);
-        gl.glUniformMatrix4fv(locProjection, 1, false, projViewer.floatArray(), 0);
+        gl.glUniformMatrix4fv(locView, 1, false, camera.getViewMatrix().floatArray(), 0); // urcuje kam koukam
+        gl.glUniformMatrix4fv(locProjection, 1, false, projViewer.floatArray(), 0); // projection matice - ohranicuje prostor kam koukam
         //gl.glUniformMatrix4fv(locLightVP, 1, false, lightCamera.getViewMatrix().mul(projLight).floatArray(), 0);
-        gl.glUniformMatrix4fv(locLightVP, 1, false, viewLight.mul(projLight).floatArray(), 0);
-        gl.glUniform3fv(locEyePosition, 1, ToFloatArray.convert(camera.getPosition()), 0);
-        gl.glUniform3fv(locLightPosition, 1, ToFloatArray.convert(light1), 0);
+        gl.glUniformMatrix4fv(locLightVP, 1, false, viewLight.mul(projLight).floatArray(), 0); //viewLight je matice co otaci svetlem a nasobi se s projLight coz je matice, ktera ohranicuje prostor, kam sviti svetlo, jejich skladanim se otaci svetlo
+        gl.glUniform3fv(locEyePosition, 1, ToFloatArray.convert(camera.getPosition()), 0); //pozice pozorovatele
+        gl.glUniform3fv(locLightPosition, 1, ToFloatArray.convert(light1), 0); //pozice svetla
 
         texture.bind(shaderProgramViewer, "textureID", 0);
         //renderTarget.getColorTexture().bind(shaderProgramViewer, "colorTexture", 0);
