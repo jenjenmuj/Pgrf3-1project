@@ -18,10 +18,7 @@ out vec3 viewDirection;
 out vec3 NdotL;
 out float dist;
 
-
 const float PI = 3.1415;
-
-// vztvorit novy shader pro slunicko, kde se bude zobrazovat teleso zvlast, budem posilat souradnice kamerz
 
 mat4 rotationMatrix(vec3 axis, float angle) {
     axis = normalize(axis);
@@ -73,7 +70,6 @@ vec3 getMobiusBand(vec2 xy) {
     float y = 2 * sin(s) + t * cos(s / 2);
     float z = t * sin(s / 2);
     vec3 pom = vec3(x, y, z) * 0.2;// *0.2 je zmenseni telesa
-    //pom = rotate(pom, vec3(0,0, 1), time); // rotace v pocatku kolem osy z
     pom.x += 1;// posunuti telesa
     pom.y -= 1;
     pom.z += 0;
@@ -212,12 +208,6 @@ void main() {
     gl_Position = projection * view * vec4(finalPos, 1.0);
 
     lightDirection = lightPosition - finalPos;// light direction vector <<L>>
-    //NdotL = vec3(dot(normal, light));// spocitat ve frag shaderu / max (ndotL, 0) ///poslat si L - vektor ke svetlu  a N normala
-
-    // získání pozice kamery z view matice
-    // (kamera je pohled třetí osoby a tudíž její pozice je v počátku - proto nutné použít view matici)
-    //mat4 invView = inverse(view);
-    //vec3 eyePosition = vec3(invView[3][0], invView[3][1], invView[3][2]);
 
     viewDirection = eyePosition - finalPos;
 
@@ -227,6 +217,6 @@ void main() {
 
     depthTexCoord = lightVP * vec4(finalPos, 1.0); //lightVP je kam svetlo kouka * pozice
 
-    depthTexCoord.xyz = ((depthTexCoord.xyz) + 1) / 2;// obrazovka má rozsahy <-1;1>
+    depthTexCoord.xyz = ((depthTexCoord.xyz) + 1) / 2;// obrazovka má rozsahy <-1;1> *** nepodarilo se premstit do FS
 
 }

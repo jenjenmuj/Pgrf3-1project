@@ -20,8 +20,8 @@ float kS = 0.4;
 float kD = 0.774597;
 float h = 76.8;
 float constantAttenuation = 0.5, linearAttenuation = 0.05, quadraticAttenuation = 0.005;
-float spotCutOff = 2.5;
-vec3 spotDirection = lightDirection;
+float spotCutOff = 50;
+vec3 spotLightDirection = lightDirection;
 
 
 void main() {
@@ -34,23 +34,18 @@ void main() {
 	vec4 specular = vec4(pow(NdotH, h)) * vec4(1.0, 1.0, 1.0, 1.0) * kS;
 
 	// vypocet utlumu
-	float att=1.0/(constantAttenuation + linearAttenuation * dist + quadraticAttenuation * dist * dist);
-/*
+	float att = 1.0 / (constantAttenuation + linearAttenuation * dist + quadraticAttenuation * dist * dist);
+
 	// vypocet reflektoru
-	float spotEffect = max(dot(normalize(spotLightDirection), normalize(-lightDirection)),0);
+	float spotEffect = max(dot(normalize(spotLightDirection), normalize( - normalize(lightDirection))), 0);
 
 
 	// nastavuji att na 0, aby se pocitala pouze ambientni slozka barvy
 	if (spotEffect < spotCutOff) {
-		att = 0.0;
+		//att = 0.0;
 	}
 
-	// osvtleni s rozmazanim
-	blend = clamp((spotEffect-spotCutOff)/(1-spotCutOff), 0.0, 1.0); //orezani na rozsah <0;1>
-	outColor = mix(ambient, color ,blend); //blendovani
-
-*/
-	vec4 texColor = texture(textureID, texCoord);
+    vec4 texColor = texture(textureID, texCoord);
 
 	float z1 = texture(depthTexture, depthTexCoord.xy / depthTexCoord.w).r;// nutná dehomogenizace
 	// r -> v light.frag uládáme gl_FragCoord.zzz, takže jsou všechny hodnoty stejné
@@ -60,11 +55,15 @@ void main() {
 
 	bool shadow = z1 < z2 - 0.0001;
 
-
 	if (shadow) {
 		att = 0.0;
 	}
 
+    // osvtleni s rozmazanim
+    float blend = clamp((spotEffect-spotCutOff)/(1-spotCutOff), 0.0, 1.0); //orezani na rozsah <0;1>
+
 	vec4 color = ambient + (att * (diffuse + specular));
-	outColor = vec4(texColor * color);
+
+	vec4 readyToBlend = (texColor * color);
+    outColor = mix(ambient, readyToBlend , blend); //blendovani
 }

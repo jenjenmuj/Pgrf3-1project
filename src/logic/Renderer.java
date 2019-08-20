@@ -45,7 +45,7 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
     private OGLTexture2D texture;
 
     private int shaderProgramViewer, locTime, lightLocTime, locView, locProjection, locMode, locLightVP, locEyePosition, locLightPosition, locLightPositionPL;
-    private int shaderProgramLight, locLightView, locLightProj, locModeLight, locLightPositionPL2;
+    private int shaderProgramLight, locLightView, locLightProj, locModeLight;
     private int shaderProgramTheSun, locSunProj, locSunView, locSunPositionPL;
 
     private int viewerPerspective = 1;
@@ -58,7 +58,7 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
 
     private float time = 0;
     private  boolean stopTime = false;
-    private Camera camera, lightCamera, pomCamera;
+    private Camera camera, lightCamera;
     private int mx, my;
     private double speed = 0.5;
 
@@ -73,9 +73,7 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
 
         textRenderer = new OGLTextRenderer(gl, glDrawable.getSurfaceWidth(), glDrawable.getSurfaceHeight());
 
-        //gl.glEnable(GL2.GL_LINE_SMOOTH);
         gl.glEnable(GL2GL3.GL_DEPTH_TEST);
-
 
         // nacteni shader programu
         shaderProgramLight = ShaderUtils.loadProgram(gl, "/light");
@@ -84,11 +82,11 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
 
         createBuffers(gl);
         buffers = GridFactory.generateGrid(gl, 20, 20);
-
-        lightCamera = new Camera()
-                .withPosition(new Vec3D(5, 5, 5))
-                .addAzimuth(5 / 4. * Math.PI)//-3/4.
-                .addZenith(-1 / 5. * Math.PI);
+//
+//        lightCamera = new Camera()
+//                .withPosition(new Vec3D(5, 5, 5))
+//                .addAzimuth(5 / 4. * Math.PI)//-3/4.
+//                .addZenith(-1 / 5. * Math.PI);
 
         camera = new Camera()
                 .withPosition(new Vec3D(0, 0, 0))
@@ -117,14 +115,10 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         locLightView = gl.glGetUniformLocation(shaderProgramLight, "viewLight");
         locModeLight = gl.glGetUniformLocation(shaderProgramLight, "mode");
         locLightPositionPL = gl.glGetUniformLocation(shaderProgramViewer, "lightPosition");
-        //locLightPositionPL2 = gl.glGetUniformLocation(shaderProgramViewer, "lightPosition2");
 
         locSunProj = gl.glGetUniformLocation(shaderProgramTheSun, "projection");
         locSunView = gl.glGetUniformLocation(shaderProgramTheSun, "view");
         locSunPositionPL = gl.glGetUniformLocation(shaderProgramTheSun, "lightPosition");
-        //locSunLightVP = gl.glGetUniformLocation(shaderProgramTheSun, "lightVP");
-        //locSunEyePosition = gl.glGetUniformLocation(shaderProgramTheSun, "eyePosition");
-        //locSunLightPosition = gl.glGetUniformLocation(shaderProgramTheSun, "lightPosition");
 
         renderTarget = new OGLRenderTarget(gl, 1024, 1024);
     }
@@ -205,8 +199,7 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         gl.glUniform1f(lightLocTime, time);
         gl.glUniformMatrix4fv(locLightView, 1, false, viewLight.floatArray(), 0);
         gl.glUniformMatrix4fv(locLightProj, 1, false, projLight.floatArray(), 0);
-        //gl.glUniform3fv(locLightPositionPL, 1, ToFloatArray.convert(lightCamera.getPosition()), 0);
-         gl.glUniform3fv(locLightPositionPL, 1, ToFloatArray.convert(light1) , 0);
+        gl.glUniform3fv(locLightPositionPL, 1, ToFloatArray.convert(light1) , 0);
 
 
         // PARAMETRIC SURFACE
@@ -236,9 +229,6 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         gl.glUniform1i(locModeLight, 5);
         buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramLight);
 
-        // Render SUN
-        //gl.glUniform1i(locMode, 7);
-        //buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramLight);
     }
 
     private void renderFromViewer(GL2GL3 gl) {
@@ -257,7 +247,6 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         gl.glUniform1f(locTime, time);
         gl.glUniformMatrix4fv(locView, 1, false, camera.getViewMatrix().floatArray(), 0); // urcuje kam koukam
         gl.glUniformMatrix4fv(locProjection, 1, false, projViewer.floatArray(), 0); // projection matice - ohranicuje prostor kam koukam
-        //gl.glUniformMatrix4fv(locLightVP, 1, false, lightCamera.getViewMatrix().mul(projLight).floatArray(), 0);
         gl.glUniformMatrix4fv(locLightVP, 1, false, viewLight.mul(projLight).floatArray(), 0); //viewLight je matice co otaci svetlem a nasobi se s projLight coz je matice, ktera ohranicuje prostor, kam sviti svetlo, jejich skladanim se otaci svetlo
         gl.glUniform3fv(locEyePosition, 1, ToFloatArray.convert(camera.getPosition()), 0); //pozice pozorovatele
         gl.glUniform3fv(locLightPosition, 1, ToFloatArray.convert(light1), 0); //pozice svetla
@@ -309,9 +298,6 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         gl.glUniform1i(locMode, 5);
         buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramViewer);
 
-        // Render SUN
-        //gl.glUniform1i( 1,7);
-        //buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramViewer);
     }
 
     private void renderFromTheSun(GL2GL3 gl) {
@@ -320,43 +306,9 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         gl.glBindFramebuffer(GL2GL3.GL_FRAMEBUFFER, 0);
         gl.glViewport(0, 0, width, height);
 
-        //gl.glClearColor(0.0f, 0.2f, 0.5f, 1.0f);
-        //gl.glClear(GL2GL3.GL_COLOR_BUFFER_BIT | GL2GL3.GL_DEPTH_BUFFER_BIT);
-
-
-        //gl.glUniform1f(locTime, time);
-
-
-        //rotuju svetlo
-        // Mat3RotZ rotatationMatrixZAxis = new Mat3RotZ(0.01);
-
-        //pomCamera = new Camera().withPosition(lightCamera.getPosition().mul(rotatationMatrixZAxis));
-        //lightCamera = pomCamera;
-
-        //Vec3D direction = new Vec3D(
-
-       // );
-       // lightCamera.move(direction);
-
         gl.glUniform3fv(locSunPositionPL, 1, ToFloatArray.convert(light1), 0);
-
         gl.glUniformMatrix4fv(locSunView, 1, false, camera.getViewMatrix().floatArray(), 0);
         gl.glUniformMatrix4fv(locSunProj, 1, false, projViewer.floatArray(), 0);
-
-        //gl.glUniformMatrix4fv(locSunLightVP, 1, false, lightCamera.getViewMatrix().mul(projLight).floatArray(), 0);
-
-        //gl.glUniform3fv(locSunEyePosition, 1, ToFloatArray.convert(camera.getPosition()), 0);
-       // gl.glUniform3fv(locSunLightPosition, 1, ToFloatArray.convert(lightCamera.getPosition()), 0);
-
-
-
-        //lightCamera.withPosition(lightCamera.getPosition().mul(rotatationMatrixZAxis));
-
-        //texture.bind(shaderProgramViewer, "textureID", 0);
-        //renderTarget.getColorTexture().bind(shaderProgramViewer, "colorTexture", 0);
-        //renderTarget.getDepthTexture().bind(shaderProgramViewer, "depthTexture", 1);
-
-
 
         // Render SUN
         gl.glUniform1i(locMode, 7);
