@@ -12,9 +12,9 @@ vec3 getSun(vec2 xy) {
     float ze = xy.y * PI/2;// máme od -1 do 1 a chceme od -PI/2 do PI/2
     float r = 0.5;
 
-    float x = cos(az) * cos(ze) * r + lightPosition.x;// presuneme na souranice svetla
-    float y = sin(az) * cos(ze) * r + lightPosition.y;
-    float z = sin(ze) * r + lightPosition.z;
+    float x = (cos(az) * cos(ze) * r ) + lightPosition.x;// presuneme na souranice svetla
+    float y = (sin(az) * cos(ze) * r ) + lightPosition.y;
+    float z = (sin(ze) * r) + lightPosition.z;
     return vec3(x, y, z);
 
 }

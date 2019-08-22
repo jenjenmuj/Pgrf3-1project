@@ -75,6 +75,17 @@ vec3 getMobiusBand(vec2 xy) {
     pom.z += 0;
     return pom;
 }
+// bonbon
+vec3 getBonbon(vec2 xy) {
+    float s = (xy.y + 1) * PI;//mame od -1 do 1 a potrebujeme od 0 do 2*PI
+    float t = xy.x;// mame od -1 do 1
+
+    float x = t*cos(s);
+    float y = s*sin(t);
+    float z = s;
+    return vec3(x, y, z);// *0.2 je zmenseni telesa
+
+}
 
 // PS with SPhERICAL COORDS
 // ohnutí gridu do podoby elipsouidu (nepouzito)
@@ -133,8 +144,9 @@ vec3 getBrokenVase(vec2 xy) {
     float s = (xy.y + 1) / 2 * 1.5 * PI;;// máme od -1 do 1 a chceme od 0 do 1.5*PI
     float r = cos(2*t)+2;
 
-    float x = r * cos(s) - 1;
-    float y = r * sin(s) - 1;
+
+    float x = r * sin(s) - 1;
+    float y = r * cos(s) - 1;
     float z = t;
     vec3 pom = vec3(x, y, z) * 0.2;
     pom.x -= 1;
@@ -149,8 +161,9 @@ vec3 getToyTop(vec2 xy) {
     float s = (xy.y + 1) * PI;;// máme od -1 do 1 a chceme od 0 do 2*PI
     float r = 1 + cos(t);
 
-    float x = r * cos(s) - 1;
-    float y = r * sin(s) - 1;
+    float x = r * sin(s) - 1;
+    float y = r * cos(s) - 1;
+
     float z = t;
     vec3 pom = vec3(x, y, z) * 0.2;
     pom.x -= 1;
@@ -161,18 +174,16 @@ vec3 getToyTop(vec2 xy) {
 
 // Amphore
 vec3 getAmphore(vec2 xy) {
-    float t = xy.x * 1.3 * PI;// máme od -1 do 1 a chceme od -1.3*pi do 1.3*pi
-    float s = (xy.y + 1) * PI;;// máme od -1 do 1 a chceme od 0 do 2*PI
-    float r = 1.5+sin(t);
+    float t = xy.x *  PI;// máme od -1 do 1 a chceme od -1.3*pi do 1.3*pi
+    float s = xy.y * 2 * PI;;// máme od -1 do 1 a chceme od 0 do 2*PI
+    float r = 1.5;
 
-    float x = r * cos(s) + 1;
-    float y = r * sin(s) - 1;
-    float z = t*cos(t)+sin(t);
-    vec3 pom = vec3(x, y, z) * 0.2;
-    pom.x -= 1;
-    pom.y += 1;
-    pom.z -= 0.5;
-    return pom;
+    float x = cos(t)*cos(s);
+    float y = sin(t)*cos(s);
+    float z = sin(s);
+
+    return vec3(x, y, z);
+
 }
 vec3 selection(vec2 pos) {
     vec3 result;
@@ -183,9 +194,9 @@ vec3 selection(vec2 pos) {
         case 2: return getElephantHead(pos);
         case 3: return getMouse(pos);
         case 4: return getBrokenVase(pos);
-        case 5: return getAmphore(pos);
+        case 5: return getToyTop(pos);
         case 6: return getMobiusBand(pos);
-        case 7: return getSun(pos);
+        case 7: return getBonbon(pos);
     }
 }
 
@@ -205,6 +216,7 @@ void main() {
 
     finalPos = selection(pos);
     normal = getNormal(pos); //<<N>>
+
     gl_Position = projection * view * vec4(finalPos, 1.0);
 
     lightDirection = lightPosition - finalPos;// light direction vector <<L>>
@@ -213,7 +225,7 @@ void main() {
 
     texCoord = inPosition;
 
-    dist = length(lightPosition);
+    dist = length(lightPosition - finalPos);
 
     depthTexCoord = lightVP * vec4(finalPos, 1.0); //lightVP je kam svetlo kouka * pozice
 

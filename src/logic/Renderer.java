@@ -55,6 +55,8 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
     private int structure = 2, structureKeyAction = 2;
     private String structureMessage = "GL Fill";
     private Mat4 projViewer, projLight;
+    private int rotationOfLight = 0, rotationOfLightKeyAction = 0;
+    private String rotationMessage = "Rotation of Light around Z axis";
 
     private float time = 0;
     private  boolean stopTime = false;
@@ -167,6 +169,8 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
 
         textRenderer.drawStr2D(width - 90, 3, " (c) PGRF UHK");
         textRenderer.drawStr2D(width - 80, height - 20, structureMessage );
+        textRenderer.drawStr2D(width - 200, height - 35, rotationMessage );
+
 
         double ratio = height / (double) width;
 
@@ -178,9 +182,9 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         }
         switch (lightPerspective) {
             case 0:
-                projLight = new Mat4OrthoRH(5 / ratio, 5, 0.1, 20); break;
+                projLight = new Mat4OrthoRH(5 , 5, 0.1, 20); break;
             case 1:
-                projLight = new Mat4PerspRH(Math.PI / 3, ratio, 1, 20.0); break;
+                projLight = new Mat4PerspRH(Math.PI / 3, 1, 1, 20.0); break;
         }
     }
 
@@ -188,8 +192,21 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         gl.glUseProgram(shaderProgramLight);
 
         renderTarget.bind();
+        //gl.glBindFramebuffer(GL2GL3.GL_FRAMEBUFFER, 0);
+        //gl.glViewport(0, 0, width, height);
 
         viewLight = new Mat4ViewRH(light1,light1.mul(-1),new Vec3D(0, 0, 1));
+
+
+/*
+        //rozmar
+        switch (rotationOfLight) {
+            default:
+            case 0: viewLight = new Mat4ViewRH(light1,light1.mul(-1),new Vec3D(0, 0, 1)); break;
+            case 1: viewLight = new Mat4ViewRH(light1,light1.mul(-1),new Vec3D(0, 1, 0)); break;
+            case 2: viewLight = new Mat4ViewRH(light1,light1.mul(-1),new Vec3D(1, 0, 0)); break;
+        }
+*/
 
         light1 = new Point3D(new Vec3D(5, 5, 5)).mul(new Mat4RotZ(time)).ignoreW();
 
@@ -212,6 +229,9 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         // Render Mobius Band
         gl.glUniform1i(locModeLight, 6);
         buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramLight);
+        // Render Paradigma
+        gl.glUniform1i(locMode, 7);
+        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramViewer);
 
         // PS WITH SPHERICAL COORDS
         // Render elephants head
@@ -225,7 +245,7 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         // Render Helicoid
         gl.glUniform1i(locModeLight, 4);
         buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramLight);
-        // Render Amphore
+        // Render ToyTop
         gl.glUniform1i(locModeLight, 5);
         buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramLight);
 
@@ -240,9 +260,9 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         gl.glClearColor(0.0f, 0.2f, 0.5f, 1.0f);
         gl.glClear(GL2GL3.GL_COLOR_BUFFER_BIT | GL2GL3.GL_DEPTH_BUFFER_BIT);
 
-        if (stopTime != true) {
+        if (!stopTime) {
             time += 0.01;
-        } else time = time;
+        }
 
         gl.glUniform1f(locTime, time);
         gl.glUniformMatrix4fv(locView, 1, false, camera.getViewMatrix().floatArray(), 0); // urcuje kam koukam
@@ -280,6 +300,9 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         // Render Mobius Band
         gl.glUniform1i(locMode, 6);
         buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramViewer);
+        // Render Paradigma
+        gl.glUniform1i(locMode, 7);
+        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramViewer);
 
         // PS WITH SPHERICAL COORDS
         // Render Elephants head
@@ -294,7 +317,7 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         gl.glUniform1i(locMode, 4);
         buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramViewer);
 
-        // Render Amphore
+        // Render ToyTop
         gl.glUniform1i(locMode, 5);
         buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramViewer);
 
@@ -323,8 +346,8 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
 
         double ratio = height / (double) width;
 
-        projViewer = new Mat4OrthoRH(5 / ratio, 5, 0.1, 20);
-        projLight = new Mat4PerspRH(Math.PI / 3, ratio, 1, 20.0);
+        projViewer = new Mat4OrthoRH(5 / ratio , 5, 0.1, 20);
+        projLight = new Mat4PerspRH(Math.PI / 3, 1, 1, 20.0);
 
     }
 
@@ -418,6 +441,25 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         if (e.getKeyCode() == 79) {
             if (stopTime == false) stopTime = true;
             else stopTime = false;
+        }
+        // R down
+        if (e.getKeyCode() == 82) {
+            rotationOfLightKeyAction++;
+            switch (rotationOfLightKeyAction % 3) {
+                case 0: {
+                    rotationOfLight = 0;
+                    rotationMessage = "Rotation of Light around Z axis";
+                } break;
+                case 1: {
+                    rotationOfLight = 1;
+                    rotationMessage = "Rotation of Light around Y axis";
+                } break;
+                case 2: {
+                    rotationOfLight = 2;
+                    rotationMessage = "Rotation of Light around X axis";
+                } break;
+            }
+            if (rotationOfLightKeyAction == 3) rotationOfLightKeyAction = 0;
         }
 
     }
