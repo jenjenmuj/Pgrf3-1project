@@ -58,6 +58,7 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
     private int rotationOfLight = 0, rotationOfLightKeyAction = 0;
     private String rotationMessage = "Rotation of Light around Z axis";
 
+    private int numberOfObjects = 8;
     private float time = 0;
     private  boolean stopTime = false;
     private Camera camera, lightCamera;
@@ -229,9 +230,7 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         // Render Mobius Band
         gl.glUniform1i(locModeLight, 6);
         buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramLight);
-        // Render Paradigma
-        gl.glUniform1i(locMode, 7);
-        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramViewer);
+
 
         // PS WITH SPHERICAL COORDS
         // Render elephants head
@@ -240,6 +239,9 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         // Render mouse
         gl.glUniform1i(locModeLight, 3);
         buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramLight);
+        // Render Bowl
+        gl.glUniform1i(locMode, 7);
+        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramViewer);
 
         // PS WITH CYLINDRICAL COORDS
         // Render Helicoid
@@ -271,9 +273,9 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         gl.glUniform3fv(locEyePosition, 1, ToFloatArray.convert(camera.getPosition()), 0); //pozice pozorovatele
         gl.glUniform3fv(locLightPosition, 1, ToFloatArray.convert(light1), 0); //pozice svetla
 
-        texture.bind(shaderProgramViewer, "textureID", 0);
+
         //renderTarget.getColorTexture().bind(shaderProgramViewer, "colorTexture", 0);
-        renderTarget.getDepthTexture().bind(shaderProgramViewer, "depthTexture", 1);
+
 
         switch(structure % 3) {
             default:
@@ -290,6 +292,7 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
                 gl.glPolygonMode(GL2GL3.GL_BACK, GL2.GL_FILL);
             } break;
         }
+/*
         // PARAMETRIC SURFACE
         // render wall
         gl.glUniform1i(locMode, 0);
@@ -301,8 +304,6 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         gl.glUniform1i(locMode, 6);
         buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramViewer);
         // Render Paradigma
-        gl.glUniform1i(locMode, 7);
-        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramViewer);
 
         // PS WITH SPHERICAL COORDS
         // Render Elephants head
@@ -311,6 +312,9 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         // render mouse
         gl.glUniform1i(locMode, 3);
         buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramViewer);
+        // Render Bowl
+        gl.glUniform1i(locMode, 7);
+        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramViewer);
 
         // PS WITH CYLINDRICAL COORDS
         // Render Helicoid
@@ -318,9 +322,22 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramViewer);
 
         // Render ToyTop
-        gl.glUniform1i(locMode, 5);
-        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramViewer);
+*/
+        for(int i = 0; i < numberOfObjects;i++) renderThemAll(gl, i);
 
+    }
+
+    private void renderThemAll(GL2GL3 gl, int mode) {
+        for (int i = 0; i < numberOfObjects; i++) {
+            int j = 0;
+            texture = new OGLTexture2D(gl, "/textures/" + j + ".jpg");
+            j++;
+            if (j == 3) j = 0;
+        }
+        texture.bind(shaderProgramViewer, "textureID", 0);
+        renderTarget.getDepthTexture().bind(shaderProgramViewer, "depthTexture", 1);
+        gl.glUniform1i(locMode, mode);
+        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramViewer);
     }
 
     private void renderFromTheSun(GL2GL3 gl) {

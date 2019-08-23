@@ -129,6 +129,19 @@ vec3 getMouse(vec2 xy) {
     return rotate(pom, vec3(-1, 0, 0), uhel);
 }
 
+// bowl
+vec3 getBowl(vec2 xy) {
+    float t = (xy.x + 1) / 2 * PI;// máme od -1 do 1 a chceme od 0 do PI
+    float s = (xy.y + 1) * PI;// máme od -1 do 1 a chceme od 0 do 2*PI
+    float r = sin(t);// *0.1 zmenseni celeho telesa
+
+    float x = sin(t) * cos(s) * r - 1;
+    float y = sin(t) * sin(s) * r  + 1;
+    float z = cos(t) * r + 1;
+
+    return vec3(x, y, z);
+
+}
 // PS with CZLINDRIC COODRS
 // broken vase
 vec3 getBrokenVase(vec2 xy) {
@@ -146,7 +159,7 @@ vec3 getBrokenVase(vec2 xy) {
     return pom;
 }
 
-// get ToyTop nepouzity
+// get ToyTop
 vec3 getToyTop(vec2 xy) {
     float t = xy.x * PI;// máme od -1 do 1 a chceme od -pi do pi
     float s = (xy.y + 1) * PI;;// máme od -1 do 1 a chceme od 0 do 2*PI
@@ -174,6 +187,24 @@ vec3 getAmphore(vec2 xy) {
 
     return vec3(x, y, z);
 }
+
+
+vec3 getHourGlass(vec2 xy) {
+    float t = (xy.x * 2 * PI) - 0.25;// máme od -1 do 1 a chceme od -1.25pi do 0.75pi
+    float s = (xy.y + 1) * PI;;// máme od -1 do 1 a chceme od 0 do 2*PI
+    float r = 1+sin(t*2);
+
+    float x = r * sin(s) - 1;
+    float y = r * cos(s) - 1;
+    float z = t;
+
+    vec3 pom = vec3(x, y, z) * 0.2;
+    pom.x += 1;
+    pom.y -= 2;
+    pom.z += 2;
+    return pom;
+}
+
 vec3 selection(vec2 pos) {
     vec3 result;
     switch (mode % 8) {
@@ -185,7 +216,7 @@ vec3 selection(vec2 pos) {
         case 4: return getBrokenVase(pos);
         case 5: return getToyTop(pos);
         case 6: return getMobiusBand(pos);
-        case 7: return getBonbon(pos);
+        case 7: return getHourGlass(pos);
     }
 }
 
