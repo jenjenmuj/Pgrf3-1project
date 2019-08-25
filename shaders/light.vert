@@ -65,11 +65,10 @@ vec3 getMobiusBand(vec2 xy) {
     pom.z += 0;
     return pom;
 }
-
 // bonbon
 vec3 getBonbon(vec2 xy) {
     float s = (xy.y + 1) * PI;//mame od -1 do 1 a potrebujeme od 0 do 2*PI
-    float t = xy.x;// mame od -1 do 1 a potrebujeme od -0.5 do 0.5
+    float t = xy.x;// mame od -1 do 1
 
     float x = t*cos(s);
     float y = s*sin(t);
@@ -77,7 +76,6 @@ vec3 getBonbon(vec2 xy) {
     return vec3(x, y, z);// *0.2 je zmenseni telesa
 
 }
-
 
 // PS with SPhERICAL COORDS
 // ohnutí gridu do podoby elipsouidu (nepouzito)
@@ -129,19 +127,6 @@ vec3 getMouse(vec2 xy) {
     return rotate(pom, vec3(-1, 0, 0), uhel);
 }
 
-// bowl
-vec3 getBowl(vec2 xy) {
-    float t = (xy.x + 1) / 2 * PI;// máme od -1 do 1 a chceme od 0 do PI
-    float s = (xy.y + 1) * PI;// máme od -1 do 1 a chceme od 0 do 2*PI
-    float r = sin(t);// *0.1 zmenseni celeho telesa
-
-    float x = sin(t) * cos(s) * r - 1;
-    float y = sin(t) * sin(s) * r  + 1;
-    float z = cos(t) * r + 1;
-
-    return vec3(x, y, z);
-
-}
 // PS with CZLINDRIC COODRS
 // broken vase
 vec3 getBrokenVase(vec2 xy) {
@@ -149,8 +134,9 @@ vec3 getBrokenVase(vec2 xy) {
     float s = (xy.y + 1) / 2 * 1.5 * PI;;// máme od -1 do 1 a chceme od 0 do 1.5*PI
     float r = cos(2*t)+2;
 
-    float y = r * cos(s) - 1;
+
     float x = r * sin(s) - 1;
+    float y = r * cos(s) - 1;
     float z = t;
     vec3 pom = vec3(x, y, z) * 0.2;
     pom.x -= 1;
@@ -186,8 +172,8 @@ vec3 getAmphore(vec2 xy) {
     float z = sin(s);
 
     return vec3(x, y, z);
-}
 
+}
 
 vec3 getHourGlass(vec2 xy) {
     float t = (xy.x * 2 * PI) - 0.25;// máme od -1 do 1 a chceme od -1.25pi do 0.75pi
@@ -204,10 +190,9 @@ vec3 getHourGlass(vec2 xy) {
     pom.z += 2;
     return pom;
 }
-
 vec3 selection(vec2 pos) {
     vec3 result;
-    switch (mode % 8) {
+    switch (mode) {
         default :
         case 0: return getWall(pos);
         case 1: return getSpiningSnake(pos);
