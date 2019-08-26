@@ -40,7 +40,7 @@ void main() {
 	// vypocet reflektoru
 	float spotEffect = max(dot(normalize(spotLightDirection), normalize(lightDirection)), 0);
 
-	vec4 texcolor = texture(textureID, texCoord);
+	vec4 texColor = texture(textureID, texCoord);
 
 	float z1 = texture(depthTexture, depthTexCoord.xy / depthTexCoord.w).r;// nutná dehomogenizace
 	// r -> v light.frag uládáme gl_FragCoord.zzz, takže jsou všechny hodnoty stejné

@@ -200,9 +200,9 @@ vec3 getHourGlass(vec2 xy) {
     pom.z += 2;
     return pom;
 }
-vec3 selection(vec2 pos) {
+vec3 selection(vec2 pos, int imode) {
     vec3 result;
-    switch (mode) {
+    switch (imode) {
         default :
         case 0: return getWall(pos);
         case 1: return getSpiningSnake(pos);
@@ -216,10 +216,10 @@ vec3 selection(vec2 pos) {
 }
 
 //normala k parametrickzm telesum
-vec3 getNormal(vec2 xy) {
+vec3 getNormal(vec2 xy, int imode) {
     float delta = 0.001;
-    vec3 u = selection(xy + vec2(delta, 0)) - selection(xy - vec2(delta, 0));
-    vec3 v = selection(xy + vec2(0, delta)) - selection(xy - vec2(0, delta));
+    vec3 u = selection(xy + vec2(delta, 0), imode) - selection(xy - vec2(delta, 0), imode);
+    vec3 v = selection(xy + vec2(0, delta), imode) - selection(xy - vec2(0, delta), imode);
     return cross(u, v);
 }
 
@@ -229,8 +229,8 @@ void main() {
     vec2 pos = inPosition * 2 - 1;// prepocitani z <0, 1> do <-1, 1>
     vec3 finalPos;
 
-    finalPos = selection(pos);
-    normal = getNormal(pos); //<<N>>
+    finalPos = mix(selection(pos, mode), selection(pos, mode+1), 0.5);
+    normal = mix(getNormal(pos, mode), getNormal(pos, mode+1), 0.5); //<<N>>
 
     gl_Position = projection * view * vec4(finalPos, 1.0);
 
