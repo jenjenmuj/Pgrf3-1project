@@ -44,9 +44,10 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
     private OGLRenderTarget renderTarget;
     private OGLTexture2D.Viewer textureViewer;
     private OGLTexture2D texture, texture0, texture1, texture2, texture3;
-    private int shaderProgramViewer, locTime, lightLocTime, locView, locProjection, locMode, locLightVP, locEyePosition, locLightPosition, locLightPositionPL;
-    private int shaderProgramLight, locLightView, locLightProj, locModeLight;
+    private int shaderProgramViewer, locTime, lightLocTime, locView, locProjection, locMode, locLightVP, locEyePosition, locModel;
+    private int shaderProgramLight, locLightView, locLightProj, locModeLight, locLightPosition, locLightPositionPL, locModelLight;
     private int shaderProgramTheSun, locSunProj, locSunView, locSunPositionPL;
+
     private boolean viewerPerspective;
     private boolean lightPerspective;
     private Vec3D light1 =  new Vec3D(5, 5, 5);
@@ -54,10 +55,10 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
     private int structure = 2;
     private String structureMessage = "GL Fill";
     private Mat4 projViewer, projLight;
-    private int rotationOfLight = 0;
+    private int rotationOfLight = 3;
     private String rotationMessage = "Rotation of Light around Z axis";
     private int numberOfObjects = 8;
-    private float time = 0;
+    private float time = 0, time2 = 0.1f;
     private  boolean stopTime = false;
     private Camera camera, lightCamera;
     private int mx, my;
@@ -115,6 +116,7 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         locTime = gl.glGetUniformLocation(shaderProgramViewer, "time");
         locMode = gl.glGetUniformLocation(shaderProgramViewer, "mode");
         locView = gl.glGetUniformLocation(shaderProgramViewer, "view");
+        locModel = gl.glGetUniformLocation(shaderProgramViewer, "model");
         locProjection = gl.glGetUniformLocation(shaderProgramViewer, "projection");
         locLightVP = gl.glGetUniformLocation(shaderProgramViewer, "lightVP");
         locEyePosition = gl.glGetUniformLocation(shaderProgramViewer, "eyePosition");
@@ -124,6 +126,7 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         lightLocTime = gl.glGetUniformLocation(shaderProgramLight, "time");
         locLightProj = gl.glGetUniformLocation(shaderProgramLight, "projLight");
         locLightView = gl.glGetUniformLocation(shaderProgramLight, "viewLight");
+        locModelLight = gl.glGetUniformLocation(shaderProgramLight, "modelLight");
         locModeLight = gl.glGetUniformLocation(shaderProgramLight, "mode");
         locLightPositionPL = gl.glGetUniformLocation(shaderProgramViewer, "lightPosition");
 
@@ -194,6 +197,8 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         else projViewer = new Mat4PerspRH(Math.PI / 3, ratio, 1, 20.0);
         if (!lightPerspective) projLight = new Mat4OrthoRH(5 , 5, 0.1, 20);
         else projLight = new Mat4PerspRH(Math.PI / 3, 1, 1, 20.0);
+
+
     }
 
     // rendrovani z pohledu svetla
@@ -221,6 +226,10 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
                         light1 = new Point3D(new Vec3D(5, 5, 5)).mul(new Mat4RotX(time)).ignoreW();
                         rotationMessage = "Rotation of Light around X axis";
                     } break;
+                    case 3: {
+                        viewLight = new Mat4ViewRH(light1,light1.mul(-1),new Vec3D(1, 0, 0));
+                        light1 = new Vec3D(5, 5, 5);
+                    } break;
                 }
 
 
@@ -232,10 +241,20 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         gl.glUniformMatrix4fv(locLightProj, 1, false, projLight.floatArray(), 0);
         gl.glUniform3fv(locLightPositionPL, 1, ToFloatArray.convert(light1) , 0);
 
+        // render ball
+        gl.glUniform1i(locModeLight, 0);
+        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramLight);
+        // render elipsoid
+        gl.glUniform1i(locModeLight, 2);
+        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramLight);
+
+        /*
         // Render all object from light persp.
         for(int i = 0; i < numberOfObjects; i++) {
             renderThemAll(gl, i);
         }
+        */
+
     }
 
     //render z pohledu pozorovatele
@@ -250,7 +269,8 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
 
         // zastaveni casu
         if (!stopTime) {
-            time += 0.01;
+            time = (float) Math.cos(time2);
+            time2 += 0.01;
         }
 
         gl.glUniform1f(locTime, time);
@@ -285,12 +305,25 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
             } break;
         }
 
+        getTexture(locMode);
+
+        // Render ball
+        gl.glUniform1i(locMode, 0);
+        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramViewer);
+
+        // Render elipsoid
+        gl.glUniform1i(locMode, 2);
+        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramViewer);
+
+
+        /*
         // vyrendrovani vsech teles, pocet teles je potreba zmenit v prommene numberOfObjects
         for(int i = 0; i < numberOfObjects; i++) {
             comingFromRenderViewer = true;
             renderThemAll(gl, i);
             comingFromRenderViewer = false;
         }
+        */
     }
 
     private void renderThemAll(GL2GL3 gl, int mode) {
@@ -463,7 +496,7 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         // R down
         if (e.getKeyCode() == 82) {
             rotationOfLight++;
-            if (rotationOfLight == 3) rotationOfLight = 0;
+            if (rotationOfLight == 4) rotationOfLight = 0;
         }
         // T down
         if (e.getKeyCode() == 84) {
