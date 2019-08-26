@@ -40,9 +40,7 @@ void main() {
 	// vypocet reflektoru
 	float spotEffect = max(dot(normalize(spotLightDirection), normalize(lightDirection)), 0);
 
-
-
-	vec4 texColor = texture(textureID, texCoord);
+	vec4 texcolor = texture(textureID, texCoord);
 
 	float z1 = texture(depthTexture, depthTexCoord.xy / depthTexCoord.w).r;// nutná dehomogenizace
 	// r -> v light.frag uládáme gl_FragCoord.zzz, takže jsou všechny hodnoty stejné
@@ -52,34 +50,12 @@ void main() {
 
 	bool shadow = z1 < z2 - 0.0001;
 
-	// nastavuji att na 0, aby se pocitala pouze ambientni slozka barvy
-	/*if (spotEffect > spotCutOff) {
-		//att = 0.0;
-	 outColor = vec4(1,1,0,1);
-   } else
-*/
 	if (shadow) {
-		//att = 0.0;
 		outColor = vec4(texColor.rgb*ambient.rgb * 0.5, 1);
-		//outColor = vec4(1,1,0, 1);
 	} else {
-
-		// osvtleni s rozmazanim
-		//float blend = clamp((spotEffect-spotCutOff)/(1-spotCutOff), 0.0, 1.0); //orezani na rozsah <0;1>
-
 		vec4 color = ambient + (att * ( diffuse + specular));
-
-		//vec4 readyToBlend = (texColor * color);
-		//outColor = mix(ambient, readyToBlend , blend); //blendovani
 		outColor = (texColor * color);
-
 	}
-//	 vec4 color = ambient + (att * (diffuse + specular));
-    // outColor = vec4(normalize(normal).xyz, 1);
-//	 outColor = vec4(texColor.rgb*ambient.rgb, 1);
-//	 outColor = vec4(vec3(spotEffect), 1);
-//	 outColor = vec4((color.rgb), 1);
 
-	// outColor = vec4(normalize(NdotL).xyz, 1);
 
 }
