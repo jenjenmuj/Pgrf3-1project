@@ -43,32 +43,31 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
     private OGLTextRenderer textRenderer;
     private OGLRenderTarget renderTarget;
     private OGLTexture2D.Viewer textureViewer;
-    private OGLTexture2D texture, texture0, texture1, texture2, texture3, textureSmile, textureWow;
-    private int shaderProgramViewer, locTime, lightLocTime, locView, locProjection, locMode, locLightVP, locEyePosition, locTransl;
-    private int shaderProgramLight, locLightView, locLightProj, locModeLight, locLightPosition, locLightPositionPL, locTranslLight;
-    private int shaderProgramTheSun, locSunProj, locSunView, locSunPositionPL;
-    private int locTextureBlend;
+    private OGLTexture2D texture, textureSmile, textureWow;
+    private int shaderProgramViewer, locTime, lightLocTime, locView, locProjection, locMode, locMode2, locLightVP, locEyePosition, locTransl;
+    private int shaderProgramLight, locLightView, locLightProj, locModeLight, locModeLight2, locLightPosition, locLightPositionPL, locTranslLight;
+    private int shaderProgramTextureBlend, locTBTime, locTBView, locTBProjection, locTBMode, locTBLightVP, locTBEyePosition, locTBTransl, locTBLightPosition;
+    private int randomObjectMode;
+    private int randomObjectMode2;
     private boolean viewerPerspective;
-    private boolean lightPerspective;
     private Vec3D light1 =  new Vec3D(5, 5, 5);
     private Mat4ViewRH viewLight;
-    private Mat4Transl translationY3 = new Mat4Transl(0,3,0);
+    private Mat4Transl translationY1 = new Mat4Transl(0,1,0);
     private Mat4RotX rotX90 = new Mat4RotX (1.5708);
     private int structure = 2;
     private String structureMessage = "GL Fill";
     private Mat4 projViewer, projLight;
     private int rotationOfLight = 3;
     private String rotationMessage = "Rotation of Light around Z axis";
-    private int numberOfObjects = 8;
+    private int numberOfObjects = 6;
     private float time = 0, time2 = 0.1f;
     private  boolean stopTime = false;
-    private Camera camera, lightCamera;
+    private Camera camera;
     private int mx, my;
     private double cameraSpeed = 0.5;
-    private int textureCounter, numberOfTextures = 4;
-    private boolean diffTextures = false;
+    private boolean blendTexturesAction = false;
     private ArrayList<Integer> listOfTextures = new ArrayList<Integer>();
-    private boolean comingFromRenderViewer = false;
+    private String objectMessage1, objectMessage2;
 
     @Override
     public void init(GLAutoDrawable glDrawable) {
@@ -86,7 +85,7 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         // nacteni shader programu
         shaderProgramLight = ShaderUtils.loadProgram(gl, "/light");
         shaderProgramViewer = ShaderUtils.loadProgram(gl, "/start");
-        shaderProgramTheSun = ShaderUtils.loadProgram(gl, "/theSun");
+        shaderProgramTextureBlend = ShaderUtils.loadProgram(gl, "/textureBlend");
 
         createBuffers(gl);
         buffers = GridFactory.generateGrid(gl, 20, 20);
@@ -106,20 +105,16 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
 
         // prirazeni textur
 
-        texture = new OGLTexture2D(gl, "/textures/bricks.jpg");
-        texture0 = new OGLTexture2D(gl, "/textures/texture0.jpg");
-        texture1 = new OGLTexture2D(gl, "/textures/texture1.jpg");
-        texture2 = new OGLTexture2D(gl, "/textures/texture2.jpg");
-        texture3 = new OGLTexture2D(gl, "/textures/texture3.jpg");
+        texture = new OGLTexture2D(gl, "/textures/texture1.jpg");
         textureSmile = new OGLTexture2D(gl, "/textures/smile.jpg");
         textureWow = new OGLTexture2D(gl, "/textures/wow.jpg");
 
         textureViewer = new OGLTexture2D.Viewer(gl);
 
         // Uniform promenne pro start.vert
-        locTextureBlend = gl.glGetUniformLocation(shaderProgramViewer, "textureBlend");
         locTime = gl.glGetUniformLocation(shaderProgramViewer, "time");
         locMode = gl.glGetUniformLocation(shaderProgramViewer, "mode");
+        locMode2 = gl.glGetUniformLocation(shaderProgramViewer, "mode2");
         locView = gl.glGetUniformLocation(shaderProgramViewer, "view");
         locTransl = gl.glGetUniformLocation(shaderProgramViewer, "translace");
         locProjection = gl.glGetUniformLocation(shaderProgramViewer, "projection");
@@ -127,17 +122,21 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         locEyePosition = gl.glGetUniformLocation(shaderProgramViewer, "eyePosition");
         locLightPosition = gl.glGetUniformLocation(shaderProgramViewer, "lightPosition");
 
+
+        locTBTime = gl.glGetUniformLocation(shaderProgramTextureBlend, "time");
+        locTBView = gl.glGetUniformLocation(shaderProgramTextureBlend, "view");
+        locTBTransl = gl.glGetUniformLocation(shaderProgramTextureBlend, "translace");
+        locTBProjection = gl.glGetUniformLocation(shaderProgramTextureBlend, "projection");
+
+
         //uniform promenne pro light.vert
         lightLocTime = gl.glGetUniformLocation(shaderProgramLight, "time");
         locLightProj = gl.glGetUniformLocation(shaderProgramLight, "projLight");
         locLightView = gl.glGetUniformLocation(shaderProgramLight, "viewLight");
         locTranslLight = gl.glGetUniformLocation(shaderProgramLight, "translaceLight");
         locModeLight = gl.glGetUniformLocation(shaderProgramLight, "mode");
+        locModeLight2 = gl.glGetUniformLocation(shaderProgramLight, "mode2");
         locLightPositionPL = gl.glGetUniformLocation(shaderProgramViewer, "lightPosition");
-
-        locSunProj = gl.glGetUniformLocation(shaderProgramTheSun, "projection");
-        locSunView = gl.glGetUniformLocation(shaderProgramTheSun, "view");
-        locSunPositionPL = gl.glGetUniformLocation(shaderProgramTheSun, "lightPosition");
 
         renderTarget = new OGLRenderTarget(gl, 1024, 1024);
     }
@@ -163,23 +162,38 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
     public void display(GLAutoDrawable glDrawable) {
         GL2GL3 gl = glDrawable.getGL().getGL2GL3();
 
-        renderFromLight(gl);
-        renderFromViewer(gl);
-        renderFromTheSun(gl);
+        //set random objects
+        while (randomObjectMode == randomObjectMode2) {
+            Random rnd = new Random();
+            randomObjectMode = rnd.nextInt(numberOfObjects);
+            objectMessage1 = setMessageforObejct(randomObjectMode);
+            randomObjectMode2 = rnd.nextInt(numberOfObjects);
+            objectMessage2 = setMessageforObejct(randomObjectMode2);
+        }
+
+        //change shader program
+        if (blendTexturesAction) {
+            renderFromTextureBlend(gl);
+            //System.out.println("RenderFromTextureBLend");
+        } else {
+            //renderFromLight(gl);
+            renderFromViewer(gl);
+        }
+
+
 
         // get back polygon mode to display windows correctly
         gl.glPolygonMode(GL2GL3.GL_FRONT_AND_BACK, GL2GL3.GL_FILL);
         textureViewer.view(texture, -1, -1, 0.25);
-        textureViewer.view(renderTarget.getColorTexture(), -1, -.75, 0.25);
-        textureViewer.view(renderTarget.getDepthTexture(), -1, -0.5, 0.25);
 
-                String[] helpText = {
+        String[] helpText = {
+                "PRESS G TO CHANGE SHADER PROGRAM! ",
+                "",
+                "Press T to select random objects for blending",
+                "Press Arrows <- and -> to blend object yourself",
                 "Movement WSAD + QE (up and down)",
                 "Press I to change structure",
-                "Press T to change texture",
-                "Press G to use random texture per object",
                 "Press P to change Viewer perspective",
-                "Press L to change Light perspective",
                 "Press R to change axis of Light rotation",
                 "Press O to stop all movement"};
 
@@ -194,78 +208,16 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         textRenderer.drawStr2D(width - 90, 3, " (c) PGRF UHK");
         textRenderer.drawStr2D(width - 80, height - 20, structureMessage );
         textRenderer.drawStr2D(width - 200, height - 35, rotationMessage );
+        textRenderer.drawStr2D(width / 2 - 20, 3, "First object is: " + objectMessage1);
+        textRenderer.drawStr2D(width / 2 - 20, 20, "Second object is: " + objectMessage2);
 
         double ratio = height / (double) width;
 
         // switching perspective for viewer and for light
         if (viewerPerspective) projViewer = new Mat4OrthoRH(5 / ratio, 5, 0.1, 20);
         else projViewer = new Mat4PerspRH(Math.PI / 3, ratio, 1, 20.0);
-        if (!lightPerspective) projLight = new Mat4OrthoRH(5 , 5, 0.1, 20);
-        else projLight = new Mat4PerspRH(Math.PI / 3, 1, 1, 20.0);
 
-
-    }
-
-    // rendrovani z pohledu svetla
-    private void renderFromLight(GL2GL3 gl) {
-        gl.glUseProgram(shaderProgramLight);
-
-        // bind rendertargetu
-        renderTarget.bind();
-
-        //rotation of light around all 3 axis
-         switch (rotationOfLight) {
-                    default:
-                    case 0: {
-                        viewLight = new Mat4ViewRH(light1,light1.mul(-1),new Vec3D(0, 0, 1));
-                        light1 = new Point3D(new Vec3D(5, 5, 5)).mul(new Mat4RotZ(time)).ignoreW();
-                        rotationMessage = "Rotation of Light around Z axis";
-                    } break;
-                    case 1: {
-                        viewLight = new Mat4ViewRH(light1,light1.mul(-1),new Vec3D(0, 0, 1));
-                        light1 = new Point3D(new Vec3D(5, 5, 5)).mul(new Mat4RotY(time)).ignoreW();
-                        rotationMessage = "Rotation of Light around Y axis";
-                    } break;
-                    case 2: {
-                        viewLight = new Mat4ViewRH(light1,light1.mul(-1),new Vec3D(0, 0, 1));
-                        light1 = new Point3D(new Vec3D(5, 5, 5)).mul(new Mat4RotX(time)).ignoreW();
-                        rotationMessage = "Rotation of Light around X axis";
-                    } break;
-                    case 3: {
-                        viewLight = new Mat4ViewRH(light1,light1.mul(-1),new Vec3D(1, 0, 0));
-                        light1 = new Vec3D(5, 5, 5);
-                    } break;
-                }
-
-
-        gl.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        gl.glClear(GL2GL3.GL_COLOR_BUFFER_BIT | GL2GL3.GL_DEPTH_BUFFER_BIT);
-
-        gl.glUniform1f(lightLocTime, time);
-        gl.glUniformMatrix4fv(locLightView, 1, false, viewLight.floatArray(), 0);
-        gl.glUniformMatrix4fv(locLightProj, 1, false, projLight.floatArray(), 0);
-        gl.glUniform3fv(locLightPositionPL, 1, ToFloatArray.convert(light1) , 0);
-
-        gl.glUniformMatrix4fv(locTranslLight, 1, false, ToFloatArray.convert(translationY3), 0);
-        // render ball
-        gl.glUniform1i(locModeLight, 0);
-        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramLight);
-
-        // render wall
-        gl.glUniform1i(locModeLight, 0);
-        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramLight);
-
-        gl.glUniformMatrix4fv(locTranslLight, 1, false, ToFloatArray.convert(rotX90), 0);
-        gl.glUniform1i(locModeLight, 2);
-        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramLight);
-
-        /*
-        // Render all object from light persp.
-        for(int i = 0; i < numberOfObjects; i++) {
-            renderThemAll(gl, i);
-        }
-        */
-
+        projLight = new Mat4PerspRH(Math.PI / 3, 1, 1, 20.0);
     }
 
     //render z pohledu pozorovatele
@@ -278,165 +230,51 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         gl.glClearColor(0.0f, 0.2f, 0.5f, 1.0f);
         gl.glClear(GL2GL3.GL_COLOR_BUFFER_BIT | GL2GL3.GL_DEPTH_BUFFER_BIT);
 
-        // zastaveni casu
-        if (!stopTime) {
-            time = (float) Math.cos(time2);
-            time2 += 0.01;
-        }
+        stopTime();
 
         gl.glUniform1f(locTime, time);
-        // Matice, ktera urcuje kam koukam
         gl.glUniformMatrix4fv(locView, 1, false, camera.getViewMatrix().floatArray(), 0);
-        // projection matice - ohranicuje prostor kam koukam
         gl.glUniformMatrix4fv(locProjection, 1, false, projViewer.floatArray(), 0);
-        //viewLight je matice co otaci svetlem a nasobi se s projLight coz je matice, ktera ohranicuje prostor, kam sviti svetlo, jejich skladanim se otaci svetlo
-        gl.glUniformMatrix4fv(locLightVP, 1, false, viewLight.mul(projLight).floatArray(), 0);
-        //pozice pozorovatele
-        gl.glUniform3fv(locEyePosition, 1, ToFloatArray.convert(camera.getPosition()), 0);
-        //pozice svetla
-        gl.glUniform3fv(locLightPosition, 1, ToFloatArray.convert(light1), 0); //pozice svetla
+        gl.glUniformMatrix4fv(locTransl, 1, false, ToFloatArray.convert(translationY1), 0);
+        gl.glUniform1i(locMode, randomObjectMode);
+        gl.glUniform1i(locMode2, randomObjectMode2);
 
         // prepinani struktury - points, fill a line
-        switch(structure % 3) {
-            default:
-            case 0: {
-                gl.glPolygonMode(GL2GL3.GL_FRONT, GL2GL3.GL_POINT);
-                gl.glPolygonMode(GL2GL3.GL_BACK, GL2GL3.GL_POINT);
-                structureMessage = "GL Point";
-            } break;
-            case 1: {
-                gl.glPolygonMode(GL2GL3.GL_FRONT, GL2.GL_LINE);
-                gl.glPolygonMode(GL2GL3.GL_BACK, GL2.GL_LINE);
-                structureMessage = "GL Line";
-            } break;
-            case 2: {
-                gl.glPolygonMode(GL2GL3.GL_FRONT, GL2.GL_FILL);
-                gl.glPolygonMode(GL2GL3.GL_BACK, GL2.GL_FILL);
-                structureMessage = "GL Fill";
-            } break;
-        }
+        structureMode(gl);
 
+        texture.bind(shaderProgramViewer, "textureID", 0);
 
-        getTexture(locMode);
-
-
-        // set texture blend to 0( false)
-        gl.glUniform1f(locTextureBlend, 0);
-        gl.glUniformMatrix4fv(locTransl, 1, false, ToFloatArray.convert(translationY3), 0);
-        // Render ball and wall
-        gl.glUniform1i(locMode, 0);
         buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramViewer);
-
-
-        // bind textures
-        textureSmile.bind(shaderProgramViewer, "textureID1", 0);
-        textureWow.bind(shaderProgramViewer, "textureID2", 2);
-        renderTarget.getDepthTexture().bind(shaderProgramViewer, "depthTexture", 1);
-
-        // set texture blend to 1 (true)
-        gl.glUniform1f(locTextureBlend, 1);
-
-        // translate wall 90
-        gl.glUniformMatrix4fv(locTransl, 1, false, ToFloatArray.convert(rotX90), 0);
-
-        // Render wall
-        gl.glUniform1i(locMode, 2);
-        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramViewer);
-
-
-//        textureWow.bind(shaderProgramViewer, "textureID2", 1);
-//        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramViewer);
-
-
-
-        /*
-        // vyrendrovani vsech teles, pocet teles je potreba zmenit v prommene numberOfObjects
-        for(int i = 0; i < numberOfObjects; i++) {
-            comingFromRenderViewer = true;
-            renderThemAll(gl, i);
-            comingFromRenderViewer = false;
-        }
-        */
     }
 
-    private void renderThemAll(GL2GL3 gl, int mode) {
 
-        //render from viewer
-        if (comingFromRenderViewer) {
-            getTexture(mode);
-            gl.glUniform1i(locMode, mode);
-            buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramViewer);
-        }
-
-        // render from Light
-        gl.glUniform1i(locModeLight, mode);
-        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramLight);
-
-    }
-
-    private void renderFromTheSun(GL2GL3 gl) {
-        gl.glUseProgram(shaderProgramTheSun);
+    private void renderFromTextureBlend(GL2GL3 gl) {
+        gl.glUseProgram(shaderProgramTextureBlend);
 
         gl.glBindFramebuffer(GL2GL3.GL_FRAMEBUFFER, 0);
         gl.glViewport(0, 0, width, height);
 
-        gl.glUniform3fv(locSunPositionPL, 1, ToFloatArray.convert(light1), 0);
-        gl.glUniformMatrix4fv(locSunView, 1, false, camera.getViewMatrix().floatArray(), 0);
-        gl.glUniformMatrix4fv(locSunProj, 1, false, projViewer.floatArray(), 0);
+        gl.glClearColor(0.0f, 0.2f, 0.5f, 1.0f);
+        gl.glClear(GL2GL3.GL_COLOR_BUFFER_BIT | GL2GL3.GL_DEPTH_BUFFER_BIT);
 
-        // Render SUN
-        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramTheSun);
-    }
+        // zastaveni casu
+        stopTime();
 
-    public void  getTexture(int mode) {
-        // prirazeni textur telesum a prepinani, mame jen 4 textury - ulozeno v promenne numberOfTextures
-        if (diffTextures) {
-            if (listOfTextures.size() <= numberOfObjects) {
-                Random r = new Random();
-                listOfTextures.add(r.nextInt(numberOfObjects - 1));
+        gl.glUniform1f(locTBTime, time);
+        gl.glUniformMatrix4fv(locTBView, 1, false, camera.getViewMatrix().floatArray(), 0);
+        gl.glUniformMatrix4fv(locTBProjection, 1, false, projViewer.floatArray(), 0);
 
-            }
-            // prirazeni textur na zaklade pozice v listu, pozice se urcuje pomoci mode
-            switch (listOfTextures.get(mode)) {
-                case 0:
-                case 4:
-                    texture = texture0;
-                    break;
-                case 1:
-                case 5:
-                    texture = texture1;
-                    break;
-                case 2:
-                case 6:
-                    texture = texture2;
-                    break;
-                case 3:
-                case 7:
-                    texture = texture3;
-                    break;
-            }
-        }
-        // prirazeni rextury podle prave vybrane textury
-        else {
+        structureMode(gl);
 
-            switch (textureCounter) {
-                case 0:
-                    texture = texture0;
-                    break;
-                case 1:
-                    texture = texture1;
-                    break;
-                case 2:
-                    texture = texture2;
-                    break;
-                case 3:
-                    texture = texture3;
-                    break;
-            }
-        }
+        // bind textures
+        textureSmile.bind(shaderProgramTextureBlend, "textureID1", 0);
+        textureWow.bind(shaderProgramTextureBlend, "textureID2", 2);
 
-        texture.bind(shaderProgramViewer, "textureID", 0);
-        renderTarget.getDepthTexture().bind(shaderProgramViewer, "depthTexture", 1);
+        // translate wall 90
+        gl.glUniformMatrix4fv(locTBTransl, 1, false, ToFloatArray.convert(rotX90), 0);
+
+        // Render wall
+        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramTextureBlend);
 
     }
 
@@ -458,7 +296,7 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         GL2GL3 gl = glDrawable.getGL().getGL2GL3();
         gl.glDeleteProgram(shaderProgramViewer);
         gl.glDeleteProgram(shaderProgramLight);
-        gl.glDeleteProgram(shaderProgramTheSun);
+        gl.glDeleteProgram(shaderProgramTextureBlend);
     }
 
     @Override
@@ -518,10 +356,6 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         if (e.getKeyCode() == 80) {
             viewerPerspective = !viewerPerspective;
         }
-        // L down
-        if (e.getKeyCode() == 76) {
-            lightPerspective = !lightPerspective;
-        }
         // O down
         if (e.getKeyCode() == 79) {
             stopTime = !stopTime;
@@ -531,17 +365,9 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
             rotationOfLight++;
             if (rotationOfLight == 4) rotationOfLight = 0;
         }
-        // T down
-        if (e.getKeyCode() == 84) {
-            if (diffTextures) diffTextures = false;
-            textureCounter++;
-            if (textureCounter == numberOfTextures) textureCounter = 0;
-        }
         // G down
         if (e.getKeyCode() == 71) {
-            listOfTextures.clear();
-            diffTextures = !diffTextures;
-            textureCounter = 0;
+            blendTexturesAction = !blendTexturesAction;
         }
 
     }
@@ -554,4 +380,48 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
     public void keyTyped(KeyEvent e) {
     }
 
+    public String setMessageforObejct(int object) {
+        String message;
+        switch (object) {
+            case 0: message ="Ball"; break;
+            case 1: message ="Elipsoid"; break;
+            case 2: message ="Wall"; break;
+            case 3: message ="Mobius band"; break;
+            case 4: message ="Elephant head"; break;
+            case 5: message ="Snake"; break;
+            default: message = "Object";
+        }
+        return message;
+    }
+
+    public void stopTime() {
+        if (!stopTime) {
+            time = (float) Math.cos(time2);
+            time2 += 0.01;
+        }
+    }
+
+    public void structureMode(GL2GL3 gl) {
+        switch (structure % 3) {
+            default:
+            case 0: {
+                gl.glPolygonMode(GL2GL3.GL_FRONT, GL2GL3.GL_POINT);
+                gl.glPolygonMode(GL2GL3.GL_BACK, GL2GL3.GL_POINT);
+                structureMessage = "GL Point";
+            }
+            break;
+            case 1: {
+                gl.glPolygonMode(GL2GL3.GL_FRONT, GL2.GL_LINE);
+                gl.glPolygonMode(GL2GL3.GL_BACK, GL2.GL_LINE);
+                structureMessage = "GL Line";
+            }
+            break;
+            case 2: {
+                gl.glPolygonMode(GL2GL3.GL_FRONT, GL2.GL_FILL);
+                gl.glPolygonMode(GL2GL3.GL_BACK, GL2.GL_FILL);
+                structureMessage = "GL Fill";
+            }
+            break;
+        }
+    }
 }

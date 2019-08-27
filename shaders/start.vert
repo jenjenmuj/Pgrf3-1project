@@ -3,25 +3,12 @@ in vec2 inPosition;//vstup z vb
 
 uniform mat4 projection;
 uniform mat4 view;
-uniform vec3 lightPosition;//pozice svetla
+uniform mat4 translace;
 uniform float time;
 uniform int mode;
-uniform mat4 lightVP;
-uniform vec3 eyePosition;
-uniform mat4 model;
-uniform mat4 translace;
-uniform float textureBlend;
+uniform int mode2;
 
-
-// vystupy
-out vec4 depthTexCoord;
 out vec2 texCoord;
-out vec3 normal; // <<N>>
-out vec3 lightDirection; // light direction vector <<L>>
-out vec3 viewDirection;
-out vec3 NdotL;
-out float dist;
-out float textureBlendFS;
 
 const float PI = 3.1415;
 
@@ -52,11 +39,11 @@ vec3 getMobiusBand(vec2 xy) {
     float x = 2 * cos(s) + t * cos(s / 2);
     float y = 2 * sin(s) + t * cos(s / 2);
     float z = t * sin(s / 2);
-     return vec3(x, y, z);// *0.2 je zmenseni telesa
+     return vec3(x, y, z) * 0.2;// *0.2 je zmenseni telesa
 }
 
 // PS with SPhERICAL COORDS
-// ohnutí gridu do podoby elipsouidu (nepouzito)
+// ohnutí gridu do podoby elipsouidu
 vec3 getElipsoid(vec2 xy) {
     float az = xy.x * PI;// pridame pohzbujici se povrch
     float ze = xy.y * PI/2;// máme od -1 do 1 a chceme od -PI/2 do PI/2
@@ -107,45 +94,14 @@ vec3 selection(vec2 pos, int imode) {
     }
 }
 
-//normala k parametrickzm telesum
-vec3 getNormal(vec2 xy, int imode) {
-    float delta = 0.001;
-    vec3 u = selection(xy + vec2(delta, 0), imode) - selection(xy - vec2(delta, 0), imode);
-    vec3 v = selection(xy + vec2(0, delta), imode) - selection(xy - vec2(0, delta), imode);
-    return cross(u, v);
-}
-
-
 void main() {
-
-    textureBlendFS = textureBlend;
 
     vec2 pos = inPosition * 2 - 1;// prepocitani z <0, 1> do <-1, 1>
     vec3 finalPos;
 
-    // mat3 normalMatrix = inverse(transpose(mat3(view)));
-
-
-    if (mode == 0) {
-        finalPos = mix(getBall(pos), getWall(pos), (time+ 1) / 2);// +1 /2 je prepocitani kvuli Cos a jeho zapornym hodnotam
-        normal = mix(getNormal(pos, 0), getNormal(pos, 2), (time + 1) / 2);//<<N>>
-    } else {
-        finalPos = getWall(pos);
-        normal = getNormal(pos, 2);//<<N>>
-    }
+    finalPos = mix(selection(pos, mode), selection(pos, mode2), (time+ 1) / 2);// +1 /2 je prepocitani kvuli Cos a jeho zapornym hodnotam
 
     gl_Position = projection * view * translace * vec4(finalPos, 1.0);
-
-    lightDirection = normalize(lightPosition - finalPos);// light direction vector <<L>>
-
-    viewDirection = eyePosition - finalPos;
-
     texCoord = inPosition;
-
-    dist = length(lightPosition - finalPos);
-
-    depthTexCoord = lightVP * translace * vec4(finalPos, 1.0); //lightVP je kam svetlo kouka * pozice
-
-    depthTexCoord.xyz = ((depthTexCoord.xyz) + 1) / 2;// obrazovka má rozsahy <-1;1> *** nepodarilo se premstit do FS
 
 }
