@@ -25,16 +25,6 @@ import java.util.*;
  * @since 2015-09-05
  */
 
-
-// rojekt 2 morfing texturz a tvaru teles
-
-//TODO render from the sun, do not clear the gl, send matrix of the light position, do for the
-// for the rotation use ModelView matrix
-// bind the Framebuffer not the renderTarget
-// use different textures on diferent object
-// prednaska 05 stiny - podle vyorecku, kde se orezava W umistit prepocitavani souradnic z vertex bufferu do frame bufferu
-//
-
 public class Renderer implements GLEventListener, MouseListener, MouseMotionListener, KeyListener {
 
 
@@ -44,30 +34,26 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
     private OGLRenderTarget renderTarget;
     private OGLTexture2D.Viewer textureViewer;
     private OGLTexture2D texture, textureSmile, textureWow;
-    private int shaderProgramViewer, locTime, lightLocTime, locView, locProjection, locMode, locMode2, locLightVP, locEyePosition, locTransl;
-    private int shaderProgramLight, locLightView, locLightProj, locModeLight, locModeLight2, locLightPosition, locLightPositionPL, locTranslLight;
-    private int shaderProgramTextureBlend, locTBTime, locTBView, locTBProjection, locTBMode, locTBLightVP, locTBEyePosition, locTBTransl, locTBLightPosition;
+    private int shaderProgramViewer, locTime, locView, locProjection, locMode, locMode2, locLightVP, locEyePosition, locTransl;
+    private int shaderProgramTextureBlend, locTBTime, locTBView, locTBProjection, locTBTransl;
     private int randomObjectMode;
     private int randomObjectMode2;
+    private float timeFromUser;
     private boolean viewerPerspective;
-    private Vec3D light1 =  new Vec3D(5, 5, 5);
-    private Mat4ViewRH viewLight;
-    private Mat4Transl translationY1 = new Mat4Transl(0,1,0);
+    private Mat4Transl translation = new Mat4Transl(0,0,0);
     private Mat4RotX rotX90 = new Mat4RotX (1.5708);
     private int structure = 2;
     private String structureMessage = "GL Fill";
     private Mat4 projViewer, projLight;
-    private int rotationOfLight = 3;
     private String rotationMessage = "Rotation of Light around Z axis";
     private int numberOfObjects = 6;
-    private float time = 0, time2 = 0.1f;
-    private  boolean stopTime = false;
+    private float time = 0, time2 = 0.1f, time3 = 0;
+    private boolean stopTime = false, userHandelingTime = false;
     private Camera camera;
     private int mx, my;
     private double cameraSpeed = 0.5;
     private boolean blendTexturesAction = false;
-    private ArrayList<Integer> listOfTextures = new ArrayList<Integer>();
-    private String objectMessage1, objectMessage2;
+
 
     @Override
     public void init(GLAutoDrawable glDrawable) {
@@ -83,17 +69,11 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         gl.glPointSize(1.5f);
 
         // nacteni shader programu
-        shaderProgramLight = ShaderUtils.loadProgram(gl, "/light");
         shaderProgramViewer = ShaderUtils.loadProgram(gl, "/start");
         shaderProgramTextureBlend = ShaderUtils.loadProgram(gl, "/textureBlend");
 
         createBuffers(gl);
         buffers = GridFactory.generateGrid(gl, 20, 20);
-//
-//        lightCamera = new Camera()
-//                .withPosition(new Vec3D(5, 5, 5))
-//                .addAzimuth(5 / 4. * Math.PI)//-3/4.
-//                .addZenith(-1 / 5. * Math.PI);
 
         camera = new Camera()
                 .withPosition(new Vec3D(0, 0, 0))
@@ -111,32 +91,19 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
 
         textureViewer = new OGLTexture2D.Viewer(gl);
 
-        // Uniform promenne pro start.vert
+        // Uniform promenne pro start.vert/frag
         locTime = gl.glGetUniformLocation(shaderProgramViewer, "time");
         locMode = gl.glGetUniformLocation(shaderProgramViewer, "mode");
         locMode2 = gl.glGetUniformLocation(shaderProgramViewer, "mode2");
         locView = gl.glGetUniformLocation(shaderProgramViewer, "view");
         locTransl = gl.glGetUniformLocation(shaderProgramViewer, "translace");
         locProjection = gl.glGetUniformLocation(shaderProgramViewer, "projection");
-        locLightVP = gl.glGetUniformLocation(shaderProgramViewer, "lightVP");
-        locEyePosition = gl.glGetUniformLocation(shaderProgramViewer, "eyePosition");
-        locLightPosition = gl.glGetUniformLocation(shaderProgramViewer, "lightPosition");
 
-
+        // uniform promenne pro textureBlend.vert/frag
         locTBTime = gl.glGetUniformLocation(shaderProgramTextureBlend, "time");
         locTBView = gl.glGetUniformLocation(shaderProgramTextureBlend, "view");
         locTBTransl = gl.glGetUniformLocation(shaderProgramTextureBlend, "translace");
         locTBProjection = gl.glGetUniformLocation(shaderProgramTextureBlend, "projection");
-
-
-        //uniform promenne pro light.vert
-        lightLocTime = gl.glGetUniformLocation(shaderProgramLight, "time");
-        locLightProj = gl.glGetUniformLocation(shaderProgramLight, "projLight");
-        locLightView = gl.glGetUniformLocation(shaderProgramLight, "viewLight");
-        locTranslLight = gl.glGetUniformLocation(shaderProgramLight, "translaceLight");
-        locModeLight = gl.glGetUniformLocation(shaderProgramLight, "mode");
-        locModeLight2 = gl.glGetUniformLocation(shaderProgramLight, "mode2");
-        locLightPositionPL = gl.glGetUniformLocation(shaderProgramViewer, "lightPosition");
 
         renderTarget = new OGLRenderTarget(gl, 1024, 1024);
     }
@@ -166,21 +133,17 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         while (randomObjectMode == randomObjectMode2) {
             Random rnd = new Random();
             randomObjectMode = rnd.nextInt(numberOfObjects);
-            objectMessage1 = setMessageforObejct(randomObjectMode);
             randomObjectMode2 = rnd.nextInt(numberOfObjects);
-            objectMessage2 = setMessageforObejct(randomObjectMode2);
         }
+
+        // set selected objects
 
         //change shader program
         if (blendTexturesAction) {
             renderFromTextureBlend(gl);
-            //System.out.println("RenderFromTextureBLend");
         } else {
-            //renderFromLight(gl);
             renderFromViewer(gl);
         }
-
-
 
         // get back polygon mode to display windows correctly
         gl.glPolygonMode(GL2GL3.GL_FRONT_AND_BACK, GL2GL3.GL_FILL);
@@ -191,11 +154,14 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
                 "",
                 "Press T to select random objects for blending",
                 "Press Arrows <- and -> to blend object yourself",
+                "Press Arrows Up to select first object",
+                "Press Arrows Down to select second object",
+                "Press O to stop and start automatic movement",
                 "Movement WSAD + QE (up and down)",
                 "Press I to change structure",
-                "Press P to change Viewer perspective",
-                "Press R to change axis of Light rotation",
-                "Press O to stop all movement"};
+                "Press P to change Viewer perspective"
+                };
+
 
         Color c = new Color(0xFFAD76);
         textRenderer.setColor(c);
@@ -206,10 +172,13 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         }
 
         textRenderer.drawStr2D(width - 90, 3, " (c) PGRF UHK");
-        textRenderer.drawStr2D(width - 80, height - 20, structureMessage );
-        textRenderer.drawStr2D(width - 200, height - 35, rotationMessage );
-        textRenderer.drawStr2D(width / 2 - 20, 3, "First object is: " + objectMessage1);
-        textRenderer.drawStr2D(width / 2 - 20, 20, "Second object is: " + objectMessage2);
+
+
+        Color cx = new Color(0xFF8FF3);
+        textRenderer.setColor(cx);
+        textRenderer.drawStr2D(width / 2 - 30, 37, "First object is: " + getMessageforObejct(randomObjectMode));
+        textRenderer.drawStr2D(width / 2 - 30, 20, "Second object is: " + getMessageforObejct(randomObjectMode2));
+        textRenderer.drawStr2D(width / 2 - 30, 3, "Using Structure: " + structureMessage);
 
         double ratio = height / (double) width;
 
@@ -217,7 +186,6 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         if (viewerPerspective) projViewer = new Mat4OrthoRH(5 / ratio, 5, 0.1, 20);
         else projViewer = new Mat4PerspRH(Math.PI / 3, ratio, 1, 20.0);
 
-        projLight = new Mat4PerspRH(Math.PI / 3, 1, 1, 20.0);
     }
 
     //render z pohledu pozorovatele
@@ -230,12 +198,12 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         gl.glClearColor(0.0f, 0.2f, 0.5f, 1.0f);
         gl.glClear(GL2GL3.GL_COLOR_BUFFER_BIT | GL2GL3.GL_DEPTH_BUFFER_BIT);
 
-        stopTime();
+        time();
 
         gl.glUniform1f(locTime, time);
         gl.glUniformMatrix4fv(locView, 1, false, camera.getViewMatrix().floatArray(), 0);
         gl.glUniformMatrix4fv(locProjection, 1, false, projViewer.floatArray(), 0);
-        gl.glUniformMatrix4fv(locTransl, 1, false, ToFloatArray.convert(translationY1), 0);
+        gl.glUniformMatrix4fv(locTransl, 1, false, ToFloatArray.convert(translation), 0);
         gl.glUniform1i(locMode, randomObjectMode);
         gl.glUniform1i(locMode2, randomObjectMode2);
 
@@ -258,7 +226,7 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         gl.glClear(GL2GL3.GL_COLOR_BUFFER_BIT | GL2GL3.GL_DEPTH_BUFFER_BIT);
 
         // zastaveni casu
-        stopTime();
+        time();
 
         gl.glUniform1f(locTBTime, time);
         gl.glUniformMatrix4fv(locTBView, 1, false, camera.getViewMatrix().floatArray(), 0);
@@ -295,7 +263,6 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
     public void dispose(GLAutoDrawable glDrawable) {
         GL2GL3 gl = glDrawable.getGL().getGL2GL3();
         gl.glDeleteProgram(shaderProgramViewer);
-        gl.glDeleteProgram(shaderProgramLight);
         gl.glDeleteProgram(shaderProgramTextureBlend);
     }
 
@@ -358,18 +325,39 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         }
         // O down
         if (e.getKeyCode() == 79) {
+            if (userHandelingTime) userHandelingTime = false;
             stopTime = !stopTime;
-        }
-        // R down
-        if (e.getKeyCode() == 82) {
-            rotationOfLight++;
-            if (rotationOfLight == 4) rotationOfLight = 0;
         }
         // G down
         if (e.getKeyCode() == 71) {
             blendTexturesAction = !blendTexturesAction;
         }
-
+        // T down
+        if (e.getKeyCode() == 84) {
+            randomObjectMode = randomObjectMode2;
+        }
+        // LeftArrow down
+        if (e.getKeyCode() == 37) {
+            userHandelingTime = true;
+            timeFromUser += 0.1;
+        }
+        // RightArrow down
+        if (e.getKeyCode() == 39) {
+            userHandelingTime = true;
+            timeFromUser -= 0.1;
+        }
+        // UpArrow down
+        if (e.getKeyCode() == 38) {
+            randomObjectMode++;
+            if (randomObjectMode == randomObjectMode2) randomObjectMode++;
+            if (randomObjectMode == numberOfObjects) randomObjectMode = 0;
+        }
+        // DownArrow down
+        if (e.getKeyCode() == 40) {
+            randomObjectMode2++;
+            if (randomObjectMode == randomObjectMode2) randomObjectMode2++;
+            if (randomObjectMode2 == numberOfObjects) randomObjectMode2 = 0;
+        }
     }
 
     @Override
@@ -380,7 +368,7 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
     public void keyTyped(KeyEvent e) {
     }
 
-    public String setMessageforObejct(int object) {
+    public String getMessageforObejct(int object) {
         String message;
         switch (object) {
             case 0: message ="Ball"; break;
@@ -394,10 +382,17 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         return message;
     }
 
-    public void stopTime() {
+    public void time() {
+
+        if (userHandelingTime) {
+            stopTime = true;
+            time3 = time2 + timeFromUser;
+            time = (float) Math.cos(time3);
+        }
         if (!stopTime) {
-            time = (float) Math.cos(time2);
-            time2 += 0.01;
+            time3 = time2 + timeFromUser;
+            time = (float) Math.cos(time3);
+            time2+= 0.01;
         }
     }
 
