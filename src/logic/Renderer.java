@@ -43,15 +43,17 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
     private OGLTextRenderer textRenderer;
     private OGLRenderTarget renderTarget;
     private OGLTexture2D.Viewer textureViewer;
-    private OGLTexture2D texture, texture0, texture1, texture2, texture3;
-    private int shaderProgramViewer, locTime, lightLocTime, locView, locProjection, locMode, locLightVP, locEyePosition, locModel;
-    private int shaderProgramLight, locLightView, locLightProj, locModeLight, locLightPosition, locLightPositionPL, locModelLight;
+    private OGLTexture2D texture, texture0, texture1, texture2, texture3, textureSmile, textureWow;
+    private int shaderProgramViewer, locTime, lightLocTime, locView, locProjection, locMode, locLightVP, locEyePosition, locTransl;
+    private int shaderProgramLight, locLightView, locLightProj, locModeLight, locLightPosition, locLightPositionPL, locTranslLight;
     private int shaderProgramTheSun, locSunProj, locSunView, locSunPositionPL;
-
+    private int locTextureBlend;
     private boolean viewerPerspective;
     private boolean lightPerspective;
     private Vec3D light1 =  new Vec3D(5, 5, 5);
     private Mat4ViewRH viewLight;
+    private Mat4Transl translationY3 = new Mat4Transl(0,3,0);
+    private Mat4RotX rotX90 = new Mat4RotX (1.5708);
     private int structure = 2;
     private String structureMessage = "GL Fill";
     private Mat4 projViewer, projLight;
@@ -109,14 +111,17 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         texture1 = new OGLTexture2D(gl, "/textures/texture1.jpg");
         texture2 = new OGLTexture2D(gl, "/textures/texture2.jpg");
         texture3 = new OGLTexture2D(gl, "/textures/texture3.jpg");
+        textureSmile = new OGLTexture2D(gl, "/textures/smile.jpg");
+        textureWow = new OGLTexture2D(gl, "/textures/wow.jpg");
 
         textureViewer = new OGLTexture2D.Viewer(gl);
 
         // Uniform promenne pro start.vert
+        locTextureBlend = gl.glGetUniformLocation(shaderProgramViewer, "textureBlend");
         locTime = gl.glGetUniformLocation(shaderProgramViewer, "time");
         locMode = gl.glGetUniformLocation(shaderProgramViewer, "mode");
         locView = gl.glGetUniformLocation(shaderProgramViewer, "view");
-        locModel = gl.glGetUniformLocation(shaderProgramViewer, "model");
+        locTransl = gl.glGetUniformLocation(shaderProgramViewer, "translace");
         locProjection = gl.glGetUniformLocation(shaderProgramViewer, "projection");
         locLightVP = gl.glGetUniformLocation(shaderProgramViewer, "lightVP");
         locEyePosition = gl.glGetUniformLocation(shaderProgramViewer, "eyePosition");
@@ -126,7 +131,7 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         lightLocTime = gl.glGetUniformLocation(shaderProgramLight, "time");
         locLightProj = gl.glGetUniformLocation(shaderProgramLight, "projLight");
         locLightView = gl.glGetUniformLocation(shaderProgramLight, "viewLight");
-        locModelLight = gl.glGetUniformLocation(shaderProgramLight, "modelLight");
+        locTranslLight = gl.glGetUniformLocation(shaderProgramLight, "translaceLight");
         locModeLight = gl.glGetUniformLocation(shaderProgramLight, "mode");
         locLightPositionPL = gl.glGetUniformLocation(shaderProgramViewer, "lightPosition");
 
@@ -217,12 +222,12 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
                         rotationMessage = "Rotation of Light around Z axis";
                     } break;
                     case 1: {
-                        viewLight = new Mat4ViewRH(light1,light1.mul(-1),new Vec3D(0, 1, 0));
+                        viewLight = new Mat4ViewRH(light1,light1.mul(-1),new Vec3D(0, 0, 1));
                         light1 = new Point3D(new Vec3D(5, 5, 5)).mul(new Mat4RotY(time)).ignoreW();
                         rotationMessage = "Rotation of Light around Y axis";
                     } break;
                     case 2: {
-                        viewLight = new Mat4ViewRH(light1,light1.mul(-1),new Vec3D(1, 0, 0));
+                        viewLight = new Mat4ViewRH(light1,light1.mul(-1),new Vec3D(0, 0, 1));
                         light1 = new Point3D(new Vec3D(5, 5, 5)).mul(new Mat4RotX(time)).ignoreW();
                         rotationMessage = "Rotation of Light around X axis";
                     } break;
@@ -241,10 +246,16 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
         gl.glUniformMatrix4fv(locLightProj, 1, false, projLight.floatArray(), 0);
         gl.glUniform3fv(locLightPositionPL, 1, ToFloatArray.convert(light1) , 0);
 
+        gl.glUniformMatrix4fv(locTranslLight, 1, false, ToFloatArray.convert(translationY3), 0);
         // render ball
         gl.glUniform1i(locModeLight, 0);
         buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramLight);
-        // render elipsoid
+
+        // render wall
+        gl.glUniform1i(locModeLight, 0);
+        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramLight);
+
+        gl.glUniformMatrix4fv(locTranslLight, 1, false, ToFloatArray.convert(rotX90), 0);
         gl.glUniform1i(locModeLight, 2);
         buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramLight);
 
@@ -305,15 +316,37 @@ public class Renderer implements GLEventListener, MouseListener, MouseMotionList
             } break;
         }
 
+
         getTexture(locMode);
 
-        // Render ball
+
+        // set texture blend to 0( false)
+        gl.glUniform1f(locTextureBlend, 0);
+        gl.glUniformMatrix4fv(locTransl, 1, false, ToFloatArray.convert(translationY3), 0);
+        // Render ball and wall
         gl.glUniform1i(locMode, 0);
         buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramViewer);
 
-        // Render elipsoid
+
+        // bind textures
+        textureSmile.bind(shaderProgramViewer, "textureID1", 0);
+        textureWow.bind(shaderProgramViewer, "textureID2", 2);
+        renderTarget.getDepthTexture().bind(shaderProgramViewer, "depthTexture", 1);
+
+        // set texture blend to 1 (true)
+        gl.glUniform1f(locTextureBlend, 1);
+
+        // translate wall 90
+        gl.glUniformMatrix4fv(locTransl, 1, false, ToFloatArray.convert(rotX90), 0);
+
+        // Render wall
         gl.glUniform1i(locMode, 2);
         buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramViewer);
+
+
+//        textureWow.bind(shaderProgramViewer, "textureID2", 1);
+//        buffers.draw(GL2GL3.GL_TRIANGLES, shaderProgramViewer);
+
 
 
         /*

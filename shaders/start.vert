@@ -9,6 +9,9 @@ uniform int mode;
 uniform mat4 lightVP;
 uniform vec3 eyePosition;
 uniform mat4 model;
+uniform mat4 translace;
+uniform float textureBlend;
+
 
 // vystupy
 out vec4 depthTexCoord;
@@ -18,6 +21,7 @@ out vec3 lightDirection; // light direction vector <<L>>
 out vec3 viewDirection;
 out vec3 NdotL;
 out float dist;
+out float textureBlendFS;
 
 const float PI = 3.1415;
 
@@ -100,8 +104,6 @@ vec3 selection(vec2 pos, int imode) {
         case 3: return getMobiusBand(pos);
         case 4: return getElephantHead(pos);
         case 5: return getSnake(pos);
-
-
     }
 }
 
@@ -116,15 +118,25 @@ vec3 getNormal(vec2 xy, int imode) {
 
 void main() {
 
+    textureBlendFS = textureBlend;
+
     vec2 pos = inPosition * 2 - 1;// prepocitani z <0, 1> do <-1, 1>
     vec3 finalPos;
 
-    finalPos = mix(getBall(pos), getWall(pos), (time+ 1) / 2); // +1 /2 je prepocitani kvuli Cos a jeho zapornym hodnotam
-    normal = mix(getBall(pos), getWall(pos), (time + 1) / 2); //<<N>>
+    // mat3 normalMatrix = inverse(transpose(mat3(view)));
 
-    gl_Position = projection * view * vec4(finalPos, 1.0);
 
-    lightDirection = lightPosition - finalPos;// light direction vector <<L>>
+    if (mode == 0) {
+        finalPos = mix(getBall(pos), getWall(pos), (time+ 1) / 2);// +1 /2 je prepocitani kvuli Cos a jeho zapornym hodnotam
+        normal = mix(getNormal(pos, 0), getNormal(pos, 2), (time + 1) / 2);//<<N>>
+    } else {
+        finalPos = getWall(pos);
+        normal = getNormal(pos, 2);//<<N>>
+    }
+
+    gl_Position = projection * view * translace * vec4(finalPos, 1.0);
+
+    lightDirection = normalize(lightPosition - finalPos);// light direction vector <<L>>
 
     viewDirection = eyePosition - finalPos;
 
@@ -132,7 +144,7 @@ void main() {
 
     dist = length(lightPosition - finalPos);
 
-    depthTexCoord = lightVP * vec4(finalPos, 1.0); //lightVP je kam svetlo kouka * pozice
+    depthTexCoord = lightVP * translace * vec4(finalPos, 1.0); //lightVP je kam svetlo kouka * pozice
 
     depthTexCoord.xyz = ((depthTexCoord.xyz) + 1) / 2;// obrazovka má rozsahy <-1;1> *** nepodarilo se premstit do FS
 

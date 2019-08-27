@@ -1,13 +1,14 @@
 #version 150
 in vec2 inPosition;// input from the vertex buffer
 in vec3 inColor;
+
 uniform float time;
 uniform mat4 viewLight;
 uniform mat4 projLight;
 uniform int mode;
 uniform vec3 lightPosition;
-uniform vec3 lightPosition2;
-uniform mat4 modelLight;
+uniform mat4 translaceLight;
+
 
 const float PI = 3.1415;
 
@@ -98,7 +99,11 @@ vec3 selection(vec2 pos, int imode) {
 void main() {
     vec2 pos = inPosition * 2 - 1;// máme od 0 do 1 a chceme od -1 do 1 (funkce pro ohyb gridu s tím počítají
     vec3 finalPos;
-    finalPos = mix(getBall(pos), getWall(pos), (time+ 1) / 2); // +1 /2 je prepocitani kvuli Cos a jeho zapornym hodnotam
+    if (mode == 0) {
+        finalPos = mix(getBall(pos), getWall(pos), (time+ 1) / 2);// +1 /2 je prepocitani kvuli Cos a jeho zapornym hodnotam
+    } else {
+        finalPos = getWall(pos);
+    }
 
-    gl_Position = projLight * viewLight * vec4(finalPos, 1.0);
+    gl_Position = projLight * viewLight * translaceLight * vec4(finalPos, 1.0);
 } 
